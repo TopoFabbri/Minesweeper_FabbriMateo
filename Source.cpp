@@ -12,23 +12,7 @@ using namespace std;
 
 */
 
-struct POSITION
-{
-	int x;
-	int y;
-};
-
-void MineCountToColor(int mineCount);					  // Get cell color by number
-void PrintMap(POSITION cursor);							  // Print the whole board
-void ResetBoard();										  // Prepare the board for a new game
-void GameFlow();										  // Main game controller
-void CreateBoard();										  // Create a random mine pattern
-int SetCellValues(int x, int y);						  // Set the board's cell values
-void CheckCell(int x, int y);							  // 
-void InGameControls();				  // Move cursor with keys
-
-HANDLE hCon = GetStdHandle(STD_OUTPUT_HANDLE);
-
+#pragma region ENUMS AND STRUCTS
 enum COLORS
 {
 	CyanOnBlack = 1,
@@ -45,47 +29,100 @@ enum COLORS
 	BlackOnWhite = 248,
 };
 
+enum MODES
+{
+	Quit,
+	Game,
+	Options,
+	MainMenu,
+};
+
+enum CHARN
+{
+	upLeftC,							// ╔
+	hor,								// ═
+	upT,								// ╦
+	upRightC,							// ╗
+	ver,								// ║
+	leftT,								// ╠
+	cross,								// ╬
+	rightT,								// ╣
+	lowLeftC,							// ╚
+	lowT,								// ╩
+	lowRightC,							// ╝
+};
+
+struct POSITION
+{
+	int x;
+	int y;
+};
+
 struct CELL
 {
 	bool opened;
 	bool mine;
-	int mineCount;
+	bool flagged;
+	short mineCount;
 };
 
-enum MODES
-{
-	Quit,
-	Menu,
-	Game,
-	Options,
-};
+#pragma endregion
 
-MODES Nav = Game;
+#pragma region VARIABLE DECLARATION
+void MineCountToColor(int mineCount);					  // Get cell color by number
+void PrintMap(POSITION cursor);							  // Print the whole board
+void ResetBoard();										  // Prepare the board for a new game
+void GameFlow();										  // Main game controller
+void CreateBoard();										  // Create a random mine pattern
+int SetCellValues(int x, int y);						  // Set the board's cell values
+void CheckCell(int x, int y);							  // Open cells
+void InGameControls();									  // Move cursor with keys
+void Menu();											  // Show menu
+bool CheckWinLose();									  // Check for winning/losing conditions
+void DrawFirstLine(char wall[]);						  // Print board's roof
+void DrawContentLines(char wall[], int y);				  // Print board's content lines
+void DrawCellFloors(char wall[], int y);				  // Print each cell's floor and divisions
+void DrawColumnNumbers();								  // Prints the first line of numbers for columns
 
-const int maxLengthX = 40;
+HANDLE hCon = GetStdHandle(STD_OUTPUT_HANDLE);
+
+// Enumerator Variables
+MODES Nav = MainMenu;
+
+// Max dimension variables
+const int maxLengthX = 52;
 const int maxLengthY = 25;
 
+// Parameters
 int columns = 8;
 int lines = 8;
 int mineQty = 10;
 
+// Ingame modifiable
+bool cheats = false;
+bool boardCreated = false;
 bool endGame;
 
 POSITION cursor;
 
 CELL board[maxLengthX][maxLengthY];
+#pragma endregion
 
-int main()
+// Default function
+void main()
 {
 	srand(time(nullptr));
 
 	ShowWindow(GetConsoleWindow(), SW_MAXIMIZE);
 
+	char ans;
+
 	do
 	{
 		switch (Nav)
 		{
-		case Menu:
+		case MainMenu:
+			Menu();
 			break;
 
 		case Game:
@@ -93,33 +130,41 @@ int main()
 			break;
 
 		case Options:
-			break;
-
-		default:
+			Nav = MainMenu;
 			break;
 
 		case Quit:
 			break;
+
+		default:
+			break;
 		}
 	} while (Nav != Quit);
+	return;
 }
 
+// Main controlle for the gameplay
 void GameFlow()
 {
+	boardCreated = false;
 	endGame = false;
 
 	ResetBoard();
-	CreateBoard();
 
 	do
 	{
 		system("cls");
 		PrintMap(cursor);
-		InGameControls();
+		endGame = CheckWinLose();
+		if (!endGame)
+		{
+			InGameControls();
+		}
 	} while (!endGame);
 	return;
 }
 
+// Get cell's color by the number it should display
 void MineCountToColor(int mineCount)
 {
 	switch (mineCount)
@@ -163,139 +208,32 @@ void MineCountToColor(int mineCount)
 	default:
 		break;
 	}
+
+	return;
 }
 
+// Print board
 void PrintMap(POSITION cursor)
 {
-	// Cell Walls variables
-	char rightWallT = 185;						// ╣
-	char verWall = 186;							// ║
-	char upRightC = 187;						// ╗
-	char lowRightC = 188;						// ╝
-	char lowLeftC = 200;						// ╚
-	char upLeftC = 201;							// ╔
-	char lowWallT = 202;						// ╩
-	char upWallT = 203;							// ╦
-	char leftWallT = 204;						// ╠
-	char horWall = 205;							// ═
-	char cross = 206;							// ╬
+	char wall[11] = { 201, 205, 203, 187, 186, 204, 206, 185, 200, 202, 188 };					 // Cell Walls variables
 
-	// Print line numbers
-	cout << " ";
-	for (int i = 0; i < columns; i++)
-	{
-		cout << "  " << (i < 9 ? " " : "") << i + 1;
-	}
+	DrawColumnNumbers();
 
-	cout << endl << "  ";
-	SetConsoleTextAttribute(hCon, BlackOnWhite);
-	cout << upLeftC;
-
-	// Print top line
-	for (int i = 0; i < columns; i++)
-	{
-		cout << horWall << horWall << horWall << (i >= columns - 1 ? upRightC : upWallT);
-	}
-	SetConsoleTextAttribute(hCon, WhiteOnBlack);
+	DrawFirstLine(wall);
 
 	// Loop for each line
 	for (int y = 0; y < lines; y++)
 	{
-		cout << endl;
+		DrawContentLines(wall, y);
 
-		// Loop for each cell
-		for (int x = 0; x < columns; x++)
-		{
-			if (x <= 0)
-			{
-				cout << y + 1 << (y < 9 ? " " : "");
-				SetConsoleTextAttribute(hCon, BlackOnWhite);
-				cout << verWall;
-			}
-
-			if (x == cursor.x && y == cursor.y)
-			{
-				if (board[x][y].mineCount > 0 && board[x][y].opened)
-				{
-					SetConsoleTextAttribute(hCon, BlackOnBlue);
-					cout << " ";
-					MineCountToColor(board[x][y].mineCount);
-					cout << board[x][y].mineCount;
-					SetConsoleTextAttribute(hCon, BlackOnBlue);
-					cout << " ";
-				}
-				else
-				{
-					SetConsoleTextAttribute(hCon, BlackOnBlue);
-					cout << "   ";
-				}
-			}
-			else if (!board[x][y].opened)
-			{
-				SetConsoleTextAttribute(hCon, BlackOnWhite);
-				cout << "   ";
-			}
-			else if (board[x][y].mine)
-			{
-				SetConsoleTextAttribute(hCon, BlackOnRed);
-				cout << "   ";
-			}
-			else if (board[x][y].mineCount > 0)
-			{
-				MineCountToColor(board[x][y].mineCount);
-				cout << " " << board[x][y].mineCount << " ";
-			}
-			else
-			{
-				SetConsoleTextAttribute(hCon, WhiteOnBlack);
-				cout << "   ";
-			}
-			SetConsoleTextAttribute(hCon, BlackOnWhite);
-			cout << verWall;
-		}
-
-		cout << endl;
-
-		if (y < lines - 1)
-		{
-			// Cell divisions
-			for (int i = 0; i < columns; i++)
-			{
-				if (i <= 0)
-				{
-					SetConsoleTextAttribute(hCon, WhiteOnBlack);
-					cout << "  ";
-					SetConsoleTextAttribute(hCon, BlackOnWhite);
-					cout << leftWallT;
-				}
-
-				SetConsoleTextAttribute(hCon, BlackOnWhite);
-				cout << horWall << horWall << horWall << (i >= columns - 1 ? rightWallT : cross);
-				SetConsoleTextAttribute(hCon, WhiteOnBlack);
-			}
-		}
-		else
-		{
-			// Board floor
-			for (int i = 0; i < columns; i++)
-			{
-				if (i <= 0)
-				{
-					SetConsoleTextAttribute(hCon, WhiteOnBlack);
-					cout << "  ";
-					SetConsoleTextAttribute(hCon, BlackOnWhite);
-					cout << lowLeftC;
-				}
-
-				SetConsoleTextAttribute(hCon, BlackOnWhite);
-				cout << horWall << horWall << horWall << (i >= columns - 1 ? lowRightC : lowWallT);
-				SetConsoleTextAttribute(hCon, WhiteOnBlack);
-			}
-		}
+		DrawCellFloors(wall, y);
 	}
 	cout << endl;
+
+	return;
 }
 
+// Set all cells' values to 0
 void ResetBoard()
 {
 	for (int y = 0; y < lines; y++)
@@ -305,30 +243,31 @@ void ResetBoard()
 			board[x][y].mineCount = 0;
 			board[x][y].mine = false;
 			board[x][y].opened = false;
+			board[x][y].flagged = false;
 		}
 	}
+
+	return;
 }
 
+// Select random positions for mines
 void CreateBoard()
 {
-	int posX;
-	int posY;
+	POSITION random;
 
+	// Plant mines
 	for (int i = 0; i < mineQty; i++)
 	{
-		posX = rand() % columns;
-		posY = rand() % lines;
+		do
+		{
+			random.x = rand() % columns;
+			random.y = rand() % lines;
+		} while (board[random.x][random.y].mine || board[random.x][random.y].opened);
 
-		if (board[posX][posY].mine)
-		{
-			i--;
-		}
-		else
-		{
-			board[posX][posY].mine = true;
-		}
+		board[random.x][random.y].mine = true;
 	}
 
+	// Burn cell values on board
 	for (int y = 0; y < lines; y++)
 	{
 		for (int x = 0; x < columns; x++)
@@ -336,8 +275,11 @@ void CreateBoard()
 			board[x][y].mineCount = SetCellValues(x, y);
 		}
 	}
+
+	return;
 }
 
+// Burn cell's values
 int SetCellValues(int x, int y)
 {
 	int counter = 0;
@@ -367,11 +309,11 @@ int SetCellValues(int x, int y)
 				}
 			}
 		}
-
-		return counter;
 	}
+	return counter;
 }
 
+// Get and execute in-game input
 void InGameControls()
 {
 	char key = _getch();
@@ -413,11 +355,11 @@ void InGameControls()
 		{
 			key = _getch();
 		} while (key != '0' && key != '1');
-		
+
 		if (key == '1')
 		{
 			endGame = true;
-			Nav = Menu;
+			Nav = MainMenu;
 		}
 		break;
 
@@ -425,11 +367,21 @@ void InGameControls()
 		CheckCell(cursor.x, cursor.y);
 		break;
 
+	case '2':
+		board[cursor.x][cursor.y].flagged = !board[cursor.x][cursor.y].flagged;
+		break;
+
+	case '3':
+		cheats = !cheats;
+		break;
+
 	default:
 		break;
 	}
+	return;
 }
 
+// Open selected cell
 void CheckCell(int x, int y)
 {
 	int minX = x < 1 ? x : x - 1;
@@ -437,15 +389,30 @@ void CheckCell(int x, int y)
 	int minY = y < 1 ? y : y - 1;
 	int maxY = y >= lines - 1 ? y : y + 1;
 
-	if (board[x][y].mine || board[x][y].opened)
+	// Create board if not created
+	if (!boardCreated)
+	{
+		boardCreated = true;
+		board[x][y].opened = true;
+		CreateBoard();
+	}
+	// Exit if cell is opened
+	else if (board[x][y].opened)
 	{
 		return;
 	}
+	// Open mine if selected
+	else if (board[x][y].mine)
+	{
+		board[x][y].opened = true;
+	}
+	// Stop calling recursion if touching a mine
 	else if (board[x][y].mineCount > 0)
 	{
 		board[x][y].opened = true;
 		return;
 	}
+	// Check touching cells
 	else
 	{
 		board[x][y].opened = true;
@@ -456,11 +423,223 @@ void CheckCell(int x, int y)
 			{
 				if (i == x && j == y)
 				{
-					i++;
+					continue;
 				}
-				CheckCell(i, j);
+				else if (i >= 0 && i < columns && j >= 0 && j < lines)
+				{
+					CheckCell(i, j);
+				}
 			}
 		}
-		return;
+	}
+
+	return;
+}
+
+// Get menu
+void Menu()
+{
+	char ans;
+
+	system("cls");
+	SetConsoleTextAttribute(hCon, BlackOnWhite);
+	cout << "                                                                         " << endl
+		<< "                                 M E N U                                 " << endl
+		<< "                                                                         " << endl << endl;
+	SetConsoleTextAttribute(hCon, WhiteOnBlack);
+
+	cout << "0: Exit application" << endl
+		<< "1: Play" << endl
+		<< "2: Options" << endl;
+
+	do
+	{
+		ans = _getch();
+		ans -= 48;
+	} while (ans > 2 || ans < 0);
+
+	Nav = (MODES)ans;
+	
+	return;
+}
+
+// Check for winning/losing conditions
+bool CheckWinLose()
+{
+	int openedCounter = 0;
+
+	for (int y = 0; y < lines; y++)
+	{
+		for (int x = 0; x < columns; x++)
+		{
+			if (board[x][y].mine && board[x][y].opened)
+			{
+				cout << "KA-BOOM! You lose!" << endl << endl;
+				system("pause");
+				return true;
+			}
+			if (board[x][y].opened)
+			{
+				openedCounter++;
+			}
+		}
+	}
+
+	if (openedCounter == lines * columns - mineQty)
+	{
+		cout << "Congratulations! You found all " << mineQty << " mines!" << endl << endl;
+		system("pause");
+		return true;
+	}
+	else
+	{
+		return false;
+	}
+}
+
+// Print top line
+void DrawFirstLine(char wall[])
+{
+	cout << endl << "  ";
+	SetConsoleTextAttribute(hCon, BlackOnWhite);
+
+	cout << wall[upLeftC];
+	for (int i = 0; i < columns; i++)
+	{
+		cout << wall[hor] << wall[hor] << wall[hor] << (i >= columns - 1 ? wall[upRightC] : wall[upT]);
+	}
+	SetConsoleTextAttribute(hCon, WhiteOnBlack);
+}
+
+// Loop for each cell
+void DrawContentLines(char wall[], int y)
+{
+	cout << endl;
+
+	for (int x = 0; x < columns; x++)
+	{
+		if (x <= 0)
+		{
+			cout << y + 1 << (y < 9 ? " " : "");
+			SetConsoleTextAttribute(hCon, BlackOnWhite);
+			cout << wall[ver];
+		}
+
+		// Bomb case
+		if (board[x][y].mine && (board[x][y].opened || cheats))
+		{
+			SetConsoleTextAttribute(hCon, BlackOnRed);
+			cout << " X ";
+		}
+		// Cursor cases
+		else if (x == cursor.x && y == cursor.y)
+		{
+			// Cursor and counter case
+			if (board[x][y].mineCount > 0 && board[x][y].opened)
+			{
+				SetConsoleTextAttribute(hCon, BlackOnBlue);
+				cout << ">";
+				MineCountToColor(board[x][y].mineCount);
+				cout << board[x][y].mineCount;
+				SetConsoleTextAttribute(hCon, BlackOnBlue);
+				cout << "<";
+			}
+			// Cursor and flag case
+			else if (board[x][y].flagged)
+			{
+				SetConsoleTextAttribute(hCon, BlackOnBlue);
+				cout << ">";
+				SetConsoleTextAttribute(hCon, BlackOnYellow);
+				cout << "!";
+				SetConsoleTextAttribute(hCon, BlackOnBlue);
+				cout << "<";
+
+			}
+			// Cursor empty case
+			else
+			{
+				SetConsoleTextAttribute(hCon, BlackOnBlue);
+				cout << "> <";
+			}
+		}
+		// Flag case
+		else if (board[x][y].flagged)
+		{
+			SetConsoleTextAttribute(hCon, BlackOnYellow);
+			cout << " ! ";
+		}
+		// Empty case
+		else if (!board[x][y].opened)
+		{
+			SetConsoleTextAttribute(hCon, BlackOnWhite);
+			cout << "   ";
+		}
+		// Closed case
+		else if (board[x][y].mineCount > 0)
+		{
+			MineCountToColor(board[x][y].mineCount);
+			cout << " " << board[x][y].mineCount << " ";
+		}
+		// Empty case
+		else
+		{
+			SetConsoleTextAttribute(hCon, WhiteOnBlack);
+			cout << "   ";
+		}
+		SetConsoleTextAttribute(hCon, BlackOnWhite);
+		cout << wall[ver];
+	}
+}
+
+// Horizontal divisions
+void DrawCellFloors(char wall[], int y)
+{
+	cout << endl;
+
+	if (y < lines - 1)
+	{
+		// Cell divisions
+		for (int i = 0; i < columns; i++)
+		{
+			if (i <= 0)
+			{
+				SetConsoleTextAttribute(hCon, WhiteOnBlack);
+				cout << "  ";
+				SetConsoleTextAttribute(hCon, BlackOnWhite);
+				cout << wall[leftT];
+			}
+
+			SetConsoleTextAttribute(hCon, BlackOnWhite);
+			cout << wall[hor] << wall[hor] << wall[hor] << (i >= columns - 1 ? wall[rightT] : wall[cross]);
+			SetConsoleTextAttribute(hCon, WhiteOnBlack);
+		}
+	}
+	else
+	{
+		// Board floor
+		for (int i = 0; i < columns; i++)
+		{
+			if (i <= 0)
+			{
+				SetConsoleTextAttribute(hCon, WhiteOnBlack);
+				cout << "  ";
+				SetConsoleTextAttribute(hCon, BlackOnWhite);
+				cout << wall[lowLeftC];
+			}
+
+			SetConsoleTextAttribute(hCon, BlackOnWhite);
+			cout << wall[hor] << wall[hor] << wall[hor] << (i >= columns - 1 ? wall[lowRightC] : wall[lowT]);
+			SetConsoleTextAttribute(hCon, WhiteOnBlack);
+		}
+	}
+}
+
+// Print column numbers
+void DrawColumnNumbers()
+{
+	cout << " ";
+	for (int i = 0; i < columns; i++)
+	{
+		cout << "  " << (i < 9 ? " " : "") << i + 1;
 	}
 }
