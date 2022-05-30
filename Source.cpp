@@ -9,7 +9,43 @@ using namespace std;
 
 // CONDITIONS
 /*
+	Condiciones mínimas:
+		1. Hacer que el tablero/set de cartas tenga como mínimo 4 pares
+			de cartas.
+		2. Las cartas deben ser números o caracteres reconocibles/
+			fácilmente distinguibles.
+		3. Cada vez que se empieza una partida nueva, el tablero es
+			randomizado.
+		4. El juego se juega en solitario.
 
+	Condiciones avanzadas:
+		1. Hacer que el juego tenga, por lo menos, tres dificultades: Fácil,
+			Normal y Difícil. A medida que aumenta la dificultad el número
+			de pares de cartas también aumenta.
+		2. El jugador puede optar por terminar el juego en mitad de la
+			partida.
+
+	"Ultimate Conditions" :
+		1. Hacer que haya un sistema que cuente la cantidad de jugadas
+			que fueron necesarias para completar el juego.
+		2. Hacer que en tableros de cantidad de cartas impares exista una
+			carta que no posea un par y sólo genere que el jugador haya
+			utilizado su turno en vano.
+		3. Hacer que el juego tenga una condición de derrota luego de que
+			el jugador supere una cierta cantidad de jugadas.
+*/
+
+// INDICATIONS
+/*
+	- NO se pueden utilizar vectores, colas, pilas o listas. (no es lo mismo
+		"vector" que "array").
+	- Realizar primero las condiciones mínimas, luego las avanzadas y
+		finalmente las "ultimate conditions" en este orden. No se tendrán en
+		cuenta las consignas realizadas de un nivel superior a menos que
+		primero estén completas las del nivel anterior.
+	- El trabajo se considera aprobado una vez que se cumplan todas las
+		"condiciones mínimas", es decir que se puede entregar el trabajo con
+		sólo la primera parte de las consignas.
 */
 
 #pragma region ENUMS AND STRUCTS
@@ -27,6 +63,19 @@ enum COLORS
 	BlackOnRed = 72,
 	BlackOnYellow = 104,
 	BlackOnWhite = 248,
+};
+
+enum KEYS
+{
+	Back,
+	Up,
+	Down,
+	Left,
+	Right,
+	Select,
+	Flag,
+	Cheats,
+	Ops,
 };
 
 enum MODES
@@ -83,6 +132,9 @@ void DrawFirstLine(char wall[]);						  // Print board's roof
 void DrawContentLines(char wall[], int y);				  // Print board's content lines
 void DrawCellFloors(char wall[], int y);				  // Print each cell's floor and divisions
 void DrawColumnNumbers();								  // Prints the first line of numbers for columns
+void GameControls();									  // Show game controls and set them
+void OptionsMenu();										  // Options menu
+void ChangeDimensions();								  // Dimensions menu
 
 HANDLE hCon = GetStdHandle(STD_OUTPUT_HANDLE);
 
@@ -100,8 +152,12 @@ int mineQty = 10;
 
 // Ingame modifiable
 bool cheats = false;
+bool showKeys = true;
 bool boardCreated = false;
-bool endGame;
+bool endGame = true;
+
+// Game controls
+char controls[9]{ '0', 'w', 's', 'a', 'd', '1', '2', '3', 'o' };
 
 POSITION cursor;
 
@@ -114,8 +170,6 @@ void main()
 	srand(time(nullptr));
 
 	ShowWindow(GetConsoleWindow(), SW_MAXIMIZE);
-
-	char ans;
 
 	do
 	{
@@ -130,7 +184,7 @@ void main()
 			break;
 
 		case Options:
-			Nav = MainMenu;
+			OptionsMenu();
 			break;
 
 		case Quit:
@@ -140,6 +194,7 @@ void main()
 			break;
 		}
 	} while (Nav != Quit);
+
 	return;
 }
 
@@ -310,6 +365,7 @@ int SetCellValues(int x, int y)
 			}
 		}
 	}
+
 	return counter;
 }
 
@@ -318,37 +374,52 @@ void InGameControls()
 {
 	char key = _getch();
 
-	switch (key)
+	if (key == controls[Up])
 	{
-	case 'w':
 		if (cursor.y > 0)
 		{
 			cursor.y--;
 		}
-		break;
-
-	case 's':
+		else
+		{
+			cursor.y = lines - 1;
+		}
+	}
+	else if (key == controls[Down])
+	{
 		if (cursor.y < lines - 1)
 		{
 			cursor.y++;
 		}
-		break;
-
-	case 'a':
+		else
+		{
+			cursor.y = 0;
+		}
+	}
+	else if (key == controls[Left])
+	{
 		if (cursor.x > 0)
 		{
 			cursor.x--;
 		}
-		break;
-
-	case 'd':
+		else
+		{
+			cursor.x = columns - 1;
+		}
+	}
+	else if (key == controls[Right])
+	{
 		if (cursor.x < columns - 1)
 		{
 			cursor.x++;
 		}
-		break;
-
-	case '0':
+		else
+		{
+			cursor.x = 0;
+		}
+	}
+	else if (key == controls[Back])
+	{
 		system("cls");
 		cout << "Do you wish to go back to menu?\n0: No\n1: Yes";
 		do
@@ -361,23 +432,24 @@ void InGameControls()
 			endGame = true;
 			Nav = MainMenu;
 		}
-		break;
-
-	case '1':
-		CheckCell(cursor.x, cursor.y);
-		break;
-
-	case '2':
-		board[cursor.x][cursor.y].flagged = !board[cursor.x][cursor.y].flagged;
-		break;
-
-	case '3':
-		cheats = !cheats;
-		break;
-
-	default:
-		break;
 	}
+	else if (key == controls[Select] && !board[cursor.x][cursor.y].flagged)
+	{
+		CheckCell(cursor.x, cursor.y);
+	}
+	else if (key == controls[Flag])
+	{
+		board[cursor.x][cursor.y].flagged = !board[cursor.x][cursor.y].flagged;
+	}
+	else if (key == controls[Cheats])
+	{
+		cheats = !cheats;
+	}
+	else if (key == controls[Ops])
+	{
+		OptionsMenu();
+	}
+
 	return;
 }
 
@@ -459,7 +531,7 @@ void Menu()
 	} while (ans > 2 || ans < 0);
 
 	Nav = (MODES)ans;
-	
+
 	return;
 }
 
@@ -572,7 +644,28 @@ void DrawContentLines(char wall[], int y)
 		else if (!board[x][y].opened)
 		{
 			SetConsoleTextAttribute(hCon, BlackOnWhite);
-			cout << "   ";
+			cout << " ";
+			if (cursor.x == x && cursor.y == y - 1 && showKeys)
+			{
+				cout << "s";
+			}
+			else if (cursor.x == x && cursor.y == y + 1 && showKeys)
+			{
+				cout << "w";
+			}
+			else if (cursor.x == x - 1 && cursor.y == y && showKeys)
+			{
+				cout << "d";
+			}
+			else if (cursor.x == x + 1 && cursor.y == y && showKeys)
+			{
+				cout << "a";
+			}
+			else
+			{
+				cout << " ";
+			}
+			cout << " ";
 		}
 		// Closed case
 		else if (board[x][y].mineCount > 0)
@@ -580,11 +673,33 @@ void DrawContentLines(char wall[], int y)
 			MineCountToColor(board[x][y].mineCount);
 			cout << " " << board[x][y].mineCount << " ";
 		}
-		// Empty case
+		// Empty case opened
 		else
 		{
 			SetConsoleTextAttribute(hCon, WhiteOnBlack);
-			cout << "   ";
+			cout << " ";
+			if (cursor.x == x && cursor.y == y - 1 && showKeys)
+			{
+				cout << "s";
+			}
+			else if (cursor.x == x && cursor.y == y + 1 && showKeys)
+			{
+				cout << "w";
+			}
+			else if (cursor.x == x - 1 && cursor.y == y && showKeys)
+			{
+				cout << "d";
+			}
+			else if (cursor.x == x + 1 && cursor.y == y && showKeys)
+			{
+				cout << "a";
+			}
+			else
+			{
+				cout << " ";
+			}
+			cout << " ";
+
 		}
 		SetConsoleTextAttribute(hCon, BlackOnWhite);
 		cout << wall[ver];
@@ -642,4 +757,228 @@ void DrawColumnNumbers()
 	{
 		cout << "  " << (i < 9 ? " " : "") << i + 1;
 	}
+}
+
+// View/set controls
+void GameControls()
+{
+	char ans;
+	do
+	{
+		system("cls");
+		SetConsoleTextAttribute(hCon, BlackOnWhite);
+		cout << "                                                                         " << endl
+			<< "                             C O N T R O L S                             " << endl
+			<< "                                                                         " << endl << endl;
+		SetConsoleTextAttribute(hCon, WhiteOnBlack);
+		cout << "1: 'Back' key:                " << controls[Back] << endl;
+		SetConsoleTextAttribute(hCon, BlackOnWhite);
+		cout << "2: 'Navigate up' key:         " << controls[Up] << endl;
+		SetConsoleTextAttribute(hCon, WhiteOnBlack);
+		cout << "3: 'Navigate down' key:       " << controls[Down] << endl;
+		SetConsoleTextAttribute(hCon, BlackOnWhite);
+		cout << "4: 'Navigate left' key:       " << controls[Left] << endl;
+		SetConsoleTextAttribute(hCon, WhiteOnBlack);
+		cout << "5: 'Navigate right' key:      " << controls[Right] << endl;
+		SetConsoleTextAttribute(hCon, BlackOnWhite);
+		cout << "6: 'Select' key:              " << controls[Select] << endl;
+		SetConsoleTextAttribute(hCon, WhiteOnBlack);
+		cout << "7: 'Flag' key:                " << controls[Flag] << endl;
+		SetConsoleTextAttribute(hCon, BlackOnWhite);
+		cout << "8: 'Toggle cheats' key:       " << controls[Cheats] << endl;
+		SetConsoleTextAttribute(hCon, WhiteOnBlack);
+		cout << "9: 'Options' key:             " << controls[Ops] << endl;
+
+		ans = _getch();
+
+		system("cls");
+
+		switch (ans)
+		{
+		case '1':
+			cout << "Current: " << controls[Back] << endl
+				<< "Press new key for 'Back'";
+			controls[Back] = _getch();
+			break;
+
+		case '2':
+			cout << "Current: " << controls[Up] << endl
+				<< "Press new key for 'Navigate up'";
+			controls[Up] = _getch();
+			break;
+
+		case '3':
+			cout << "Current: " << controls[Down] << endl
+				<< "Press new key for 'Navigate down'";
+			controls[Down] = _getch();
+			break;
+
+		case '4':
+			cout << "Current: " << controls[Left] << endl
+				<< "Press new key for 'Navigate left'";
+			controls[Left] = _getch();
+			break;
+
+		case '5':
+			cout << "Current: " << controls[Right] << endl
+				<< "Press new key for 'Navigate right'";
+			controls[Right] = _getch();
+			break;
+
+		case '6':
+			cout << "Current: " << controls[Select] << endl
+				<< "Press new key for 'Select'";
+			controls[Select] = _getch();
+			break;
+
+		case '7':
+			cout << "Current: " << controls[Flag] << endl
+				<< "Press new key for 'Flag'";
+			controls[Flag] = _getch();
+			break;
+
+		case '8':
+			cout << "Current: " << controls[Cheats] << endl
+				<< "Press new key for 'Cheats'";
+			controls[Cheats] = _getch();
+			break;
+
+		default:
+			break;
+		}
+	} while (ans != '0');
+}
+
+// Options menu
+void OptionsMenu()
+{
+	enum CONFIGS
+	{
+		ExitOptions,
+		EnterGame,
+		SetControls,
+		BoardKeys,
+		Dimensions,
+	};
+
+	CONFIGS ConfigOps;
+
+	char ans;
+
+	do
+	{
+		system("cls");
+		SetConsoleTextAttribute(hCon, BlackOnWhite);
+		cout << "                                                                         " << endl
+			<< "                              O P T I O N S                              " << endl
+			<< "                                                                         " << endl << endl;
+		SetConsoleTextAttribute(hCon, WhiteOnBlack);
+
+		cout << "0: Back to menu" << endl
+			<< "1: Play" << endl
+			<< "2: In-game controls" << endl
+			<< "3: Show navigation keys			Default: ";
+		SetConsoleTextAttribute(hCon, GreenOnBlack);
+		cout << "ON	";
+		SetConsoleTextAttribute(hCon, WhiteOnBlack);
+		cout << "Current: ";
+		SetConsoleTextAttribute(hCon, (showKeys ? GreenOnBlack : RedOnBlack));
+		cout << (showKeys ? "ON" : "OFF") << endl;
+		SetConsoleTextAttribute(hCon, WhiteOnBlack);
+
+
+		if (endGame)
+		{
+			cout << "4: Dimensions" << endl
+				<< "		Lines			Default: 8	Current: " << lines << endl
+				<< "		Columns			Default: 8	Current: " << columns << endl;
+		}
+
+		ans = _getch();
+		ConfigOps = (CONFIGS)(ans - 48);
+
+		switch (ConfigOps)
+		{
+		case EnterGame:
+			Nav = Game;
+			return;
+			break;
+
+		case SetControls:
+			GameControls();
+			break;
+
+		case BoardKeys:
+			showKeys = !showKeys;
+			break;
+
+		case Dimensions:
+			if (endGame)
+			{
+				ChangeDimensions();
+			}
+			break;
+
+		case ExitOptions:
+			break;
+
+		default:
+			break;
+		}
+	} while (ans != '0');
+}
+
+// Dimensions menu
+void ChangeDimensions()
+{
+	char ans;
+	do
+	{
+		system("cls");
+		SetConsoleTextAttribute(hCon, 240);
+		cout << "                                                                                   " << endl
+			<< "                                D I M E N T I O N S                                " << endl
+			<< "                                                                                   " << endl << endl;
+		SetConsoleTextAttribute(hCon, 15);
+
+		cout << "0: Back" << endl
+			<< "1: line amount			Default 8	Current: " << lines << endl
+			<< "2: Column amount		Default 8	Current: " << columns << endl;
+
+		ans = _getch();
+		switch (ans)
+		{
+		case '0':
+			break;
+
+			// Select amount of lines
+		case '1':
+			cout << endl << "Enter the amount of lines on the tilemap (1 - " << maxLengthY << "): ";
+			do
+			{
+				cin >> lines;
+				cout << "Input out of bounds. Try again: ";
+			} while (lines < 1 || lines > maxLengthY);
+			break;
+
+			// Select amount of columns
+		case '2':
+			cout << endl << "Enter the amount of columns on the tilemap (1 - " << maxLengthX << "): ";
+			do
+			{
+				cin >> columns;
+				cout << "Input out of bounds. Try again: ";
+			} while (columns < 1 || columns > maxLengthX);
+
+			if (columns > 25)
+			{
+				ShowWindow(GetConsoleWindow(), SW_MAXIMIZE);
+			}
+			break;
+
+		default:
+			break;
+		}
+	} while (ans != '0');
+
 }
