@@ -10,30 +10,30 @@ using namespace std;
 // CONDITIONS
 /*
 	Condiciones mínimas:
-		1. Hacer que el tablero/set de cartas tenga como mínimo 4 pares
-			de cartas.
-		2. Las cartas deben ser números o caracteres reconocibles/
-			fácilmente distinguibles.
-		3. Cada vez que se empieza una partida nueva, el tablero es
+		1. Las minas, las banderas, las celdas "inexploradas" y las
+			descubiertas (vacías o con números) poseen caracteres que las
+			diferencien entre ellas de forma fácil y efectiva .
+		2. Cada vez que se empieza una partida nueva, el tablero es
 			randomizado.
-		4. El juego se juega en solitario.
+		3. La cantidad mínima de minas es de 10.
+		4. El tamaño del tablero debe ser mínimo de 8x8.
 
 	Condiciones avanzadas:
 		1. Hacer que el juego tenga, por lo menos, tres dificultades: Fácil,
-			Normal y Difícil. A medida que aumenta la dificultad el número
-			de pares de cartas también aumenta.
+			Normal y Difícil. A medida que aumenta la dificultad aumenta el
+			tamaño del tablero y la cantidad de minas.
 		2. El jugador puede optar por terminar el juego en mitad de la
 			partida.
+		3. Hacer que haya un contador que muestre la cantidad de minas
+			restantes.
 
 	"Ultimate Conditions" :
-		1. Hacer que haya un sistema que cuente la cantidad de jugadas
-			que fueron necesarias para completar el juego.
-		2. Hacer que en tableros de cantidad de cartas impares exista una
-			carta que no posea un par y sólo genere que el jugador haya
-			utilizado su turno en vano.
-		3. Hacer que el juego tenga una condición de derrota luego de que
-			el jugador supere una cierta cantidad de jugadas.
-*/
+		1. Hacer que el tablero se genere a partir de la primera selección
+			del jugador, y por ende, el primer intento nunca es una mina.
+		2. Hacer un cronómetro para que al final el juego indique el tiempo
+			transcurrido. NO tiene que mostrarse en pantalla ni actualizarse.
+			*mirar ejemplo provisto*
+	*/
 
 // INDICATIONS
 /*
@@ -51,12 +51,12 @@ using namespace std;
 #pragma region ENUMS AND STRUCTS
 enum COLORS
 {
-	CyanOnBlack = 1,
+	BlueOnBlack = 9,
 	GreenOnBlack = 2,
 	RedOnBlack = 4,
 	PurpleOnBlack = 5,
 	YellowOnBlack = 6,
-	BlueOnBlack = 9,
+	CyanOnBlack = 3,
 	OrangeOnBlack = 12,
 	WhiteOnBlack = 15,
 	BlackOnBlue = 16,
@@ -153,7 +153,7 @@ CELL board[maxLengthX][maxLengthY];
 #pragma endregion
 
 void MineCountToColor(int mineCount);					  // Get cell color by number
-void PrintBoard(POSITION cursor);						  // Print the whole board
+void PrintBoard();						  // Print the whole board
 void ResetBoard();										  // Prepare the board for a new game
 void GameFlow();										  // Main game controller
 void CreateBoard();										  // Create a random mine pattern
@@ -176,7 +176,7 @@ void main()
 {
 	srand(time(nullptr));
 
-	//ShowWindow(GetConsoleWindow(), SW_MAXIMIZE);
+	ShowWindow(GetConsoleWindow(), SW_MAXIMIZE);
 
 	do
 	{
@@ -216,7 +216,7 @@ void GameFlow()
 	do
 	{
 		system("cls");
-		PrintBoard(cursor);
+		PrintBoard();
 		endGame = CheckWinLose();
 		if (!endGame)
 		{
@@ -236,11 +236,11 @@ void MineCountToColor(int mineCount)
 		break;
 
 	case 1:
-		SetConsoleTextAttribute(hCon, CyanOnBlack);
+		SetConsoleTextAttribute(hCon, BlueOnBlack);
 		break;
 
 	case 2:
-		SetConsoleTextAttribute(hCon, BlueOnBlack);
+		SetConsoleTextAttribute(hCon, CyanOnBlack);
 		break;
 
 	case 3:
@@ -275,7 +275,7 @@ void MineCountToColor(int mineCount)
 }
 
 // Print board
-void PrintBoard(POSITION cursor)
+void PrintBoard()
 {
 	char wall[11] = { 201, 205, 203, 187, 186, 204, 206, 185, 200, 202, 188 };					 // Cell Walls variables
 
@@ -666,7 +666,7 @@ void DrawContentLines(char wall[], int y)
 			else
 			{
 				SetConsoleTextAttribute(hCon, BlackOnBlue);
-				cout << "> <";
+				cout << " X ";
 			}
 		}
 		// Bomb case
@@ -914,7 +914,9 @@ void OptionsMenu()
 		EnterGame,
 		SetControls,
 		BoardKeys,
+		Difficulty,
 		Dimensions,
+		MineAmount,
 	};
 
 	CONFIGS ConfigOps;
@@ -930,10 +932,10 @@ void OptionsMenu()
 			<< "                                                                         " << endl << endl;
 		SetConsoleTextAttribute(hCon, WhiteOnBlack);
 
-		cout << "0: Back to menu" << endl
-			<< "1: Play" << endl
-			<< "2: In-game controls" << endl
-			<< "3: Show navigation keys			Default: ";
+		cout << ExitOptions << ": Back to menu" << endl
+			<< EnterGame << ": Play" << endl
+			<< SetControls << ": In-game controls" << endl
+			<< BoardKeys << ": Show navigation keys			Default: ";
 		SetConsoleTextAttribute(hCon, GreenOnBlack);
 		cout << "ON	";
 		SetConsoleTextAttribute(hCon, WhiteOnBlack);
@@ -945,9 +947,11 @@ void OptionsMenu()
 
 		if (endGame)
 		{
-			cout << "4: Dimensions" << endl
+			cout << Difficulty << ": Difficulty" << endl;
+			cout << Dimensions << ": Dimensions" << endl
 				<< "		Lines			Default: 8	Current: " << lines << endl
 				<< "		Columns			Default: 8	Current: " << columns << endl;
+			cout << MineAmount << ": Mine quantity		Default: 10	Current: " << mineQty << endl;
 		}
 
 		ans = _getch();
@@ -968,6 +972,9 @@ void OptionsMenu()
 			showKeys = !showKeys;
 			break;
 
+		case Difficulty:
+			break;
+
 		case Dimensions:
 			if (endGame)
 			{
@@ -977,6 +984,25 @@ void OptionsMenu()
 
 		case ExitOptions:
 			Nav = MainMenu;
+			break;
+
+		case MineAmount:
+			if (endGame)
+			{
+				system("cls");
+				SetConsoleTextAttribute(hCon, BlackOnWhite);
+				cout << "                                                                         " << endl
+					<< "                                M I N E S                                " << endl
+					<< "                                                                         " << endl << endl;
+				SetConsoleTextAttribute(hCon, WhiteOnBlack);
+
+				cout << "Mine quantity (1 - " << lines * columns - 1 << ")		Default: 10	Current: " << mineQty << endl;
+				do
+				{
+					cin >> mineQty;
+					cout << "Input out of bounds! Try again: ";
+				} while (mineQty >= lines * columns || mineQty < 1);
+			}
 			break;
 
 		default:
@@ -1016,6 +1042,14 @@ void ChangeDimensions()
 				cin >> lines;
 				cout << "Input out of bounds. Try again: ";
 			} while (lines < 1 || lines > maxLengthY);
+
+			while (mineQty >= lines * columns)
+			{
+				cout << "There can't be more mines than cells. Please enter a new amount of mines (1 - " << lines * columns - 1 << "): ";
+
+				cin >> mineQty;
+			}
+
 			break;
 
 			// Select amount of columns
@@ -1031,6 +1065,14 @@ void ChangeDimensions()
 			{
 				ShowWindow(GetConsoleWindow(), SW_MAXIMIZE);
 			}
+
+			while (mineQty >= lines * columns)
+			{
+				cout << "There can't be more mines than cells. Please enter a new amount of mines (1 - " << lines * columns - 1 << "): ";
+
+				cin >> mineQty;
+			}
+
 			break;
 
 		default:
@@ -1048,6 +1090,7 @@ void SmartFlag(int x, int y)
 	int minY = y < 1 ? y : y - 1;
 	int maxY = y >= lines - 1 ? y : y + 1;
 	int openedCounter = 0;
+	int flagCounter = 0;
 	int contacts = (((maxY + 1) - minY) * ((maxX + 1) - minX) - 1);
 
 	for (int j = minY; j <= maxY; j++)
@@ -1061,6 +1104,10 @@ void SmartFlag(int x, int y)
 			else if (board[i][j].opened)
 			{
 				openedCounter++;
+			}
+			else if (board[i][j].flagged)
+			{
+				flagCounter++;
 			}
 		}
 	}
@@ -1078,6 +1125,24 @@ void SmartFlag(int x, int y)
 				else if (!board[i][j].opened)
 				{
 					board[i][j].flagged = true;
+				}
+			}
+		}
+	}
+
+	if (flagCounter == board[x][y].mineCount)
+	{
+		for (int j = minY; j <= maxY; j++)
+		{
+			for (int i = minX; i <= maxX; i++)
+			{
+				if (i == x && j == y)
+				{
+					continue;
+				}
+				else if (!board[i][j].opened && !board[i][j].flagged)
+				{
+					CheckCell(i, j);
 				}
 			}
 		}
