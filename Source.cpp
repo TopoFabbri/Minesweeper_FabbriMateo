@@ -7,7 +7,7 @@ using namespace std;
 
 // ANALISIS_TM_TP6_FabbriMateo
 
-// CONDITIONS
+// CONDITIONS:
 /*
 	Condiciones mínimas:
 		1. Las minas, las banderas, las celdas "inexploradas" y las
@@ -35,18 +35,18 @@ using namespace std;
 			*mirar ejemplo provisto*
 	*/
 
-// INDICATIONS
-/*
-	- NO se pueden utilizar vectores, colas, pilas o listas. (no es lo mismo
-		"vector" que "array").
-	- Realizar primero las condiciones mínimas, luego las avanzadas y
-		finalmente las "ultimate conditions" en este orden. No se tendrán en
-		cuenta las consignas realizadas de un nivel superior a menos que
-		primero estén completas las del nivel anterior.
-	- El trabajo se considera aprobado una vez que se cumplan todas las
-		"condiciones mínimas", es decir que se puede entregar el trabajo con
-		sólo la primera parte de las consignas.
-*/
+	// INDICATIONS:
+	/*
+		- NO se pueden utilizar vectores, colas, pilas o listas. (no es lo mismo
+			"vector" que "array").
+		- Realizar primero las condiciones mínimas, luego las avanzadas y
+			finalmente las "ultimate conditions" en este orden. No se tendrán en
+			cuenta las consignas realizadas de un nivel superior a menos que
+			primero estén completas las del nivel anterior.
+		- El trabajo se considera aprobado una vez que se cumplan todas las
+			"condiciones mínimas", es decir que se puede entregar el trabajo con
+			sólo la primera parte de las consignas.
+	*/
 
 #pragma region ENUMS AND STRUCTS
 enum COLORS
@@ -81,6 +81,7 @@ enum KEYS
 	Select,
 	Flag,
 	Cheats,
+	ClearFlags,
 	Ops,
 };
 
@@ -137,6 +138,7 @@ const int maxLengthY = 25;
 int columns = 8;
 int lines = 8;
 int mineQty = 10;
+int flagQty;
 
 // Ingame modifiable
 bool cheats = false;
@@ -144,8 +146,14 @@ bool showKeys = true;
 bool boardCreated = false;
 bool endGame = true;
 
+// Time variables
+float gameInitTime = 0.0f;
+float timeElapsed = 0.0f;
+short finalTime[2];
+short printTime[2];
+
 // Game controls
-char controls[9]{ '0', 'w', 's', 'a', 'd', '1', '2', '3', 'o' };
+char controls[10]{ '0', 'w', 's', 'a', 'd', '1', '2', '3', '4', 'o' };
 
 POSITION cursor;
 
@@ -153,7 +161,7 @@ CELL board[maxLengthX][maxLengthY];
 #pragma endregion
 
 void MineCountToColor(int mineCount);					  // Get cell color by number
-void PrintBoard();						  // Print the whole board
+void PrintBoard();										  // Print the whole board
 void ResetBoard();										  // Prepare the board for a new game
 void GameFlow();										  // Main game controller
 void CreateBoard();										  // Create a random mine pattern
@@ -170,6 +178,7 @@ void GameControls();									  // Show game controls and set them
 void OptionsMenu();										  // Options menu
 void ChangeDimensions();								  // Dimensions menu
 void SmartFlag(int x, int y);							  // Smart auto-flag
+void FlagClear();										  // Clears all flags
 
 // Default function
 void main()
@@ -274,10 +283,24 @@ void MineCountToColor(int mineCount)
 	return;
 }
 
+// Calculate and print time
+void GetTime()
+{
+	timeElapsed = clock() - gameInitTime;
+
+	printTime[0] = timeElapsed / 60000;
+	printTime[1] = timeElapsed / 1000 - 60 * printTime[0];
+
+	cout << "Time: " << (printTime[0] > 9 ? "" : "0") << printTime[0] << ":" << (printTime[1] > 9 ? "" : "0") << printTime[1] << endl;
+}
+
 // Print board
 void PrintBoard()
 {
+
 	char wall[11] = { 201, 205, 203, 187, 186, 204, 206, 185, 200, 202, 188 };					 // Cell Walls variables
+
+	GetTime();
 
 	DrawColumnNumbers();
 
@@ -307,6 +330,8 @@ void PrintBoard()
 	cout << controls[Flag] << ": Flag		";
 	SetConsoleTextAttribute(hCon, RedOnBlack);
 	cout << controls[Cheats] << ": Cheats	" << endl;
+	SetConsoleTextAttribute(hCon, GreenOnBlack);
+	cout << controls[ClearFlags] << ": Clear flags	";
 	SetConsoleTextAttribute(hCon, WhiteOnBlack);
 	cout << controls[Ops] << ": Options	" << endl;
 
@@ -316,6 +341,7 @@ void PrintBoard()
 // Set all cells' values to 0
 void ResetBoard()
 {
+	flagQty = mineQty;
 	for (int y = 0; y < lines; y++)
 	{
 		for (int x = 0; x < columns; x++)
@@ -333,6 +359,8 @@ void ResetBoard()
 // Select random positions for mines
 void CreateBoard()
 {
+	gameInitTime = clock();
+
 	POSITION random;
 
 	// Plant mines
@@ -471,7 +499,21 @@ void InGameControls()
 	}
 	else if (key == controls[Flag] && !board[cursor.x][cursor.y].opened)
 	{
-		board[cursor.x][cursor.y].flagged = !board[cursor.x][cursor.y].flagged;
+		if (board[cursor.x][cursor.y].flagged)
+		{
+			flagQty++;
+			board[cursor.x][cursor.y].flagged = false;
+		}
+		else if (flagQty > 0)
+		{
+			flagQty--;
+			board[cursor.x][cursor.y].flagged = true;
+		}
+		else
+		{
+			cout << "No flags left!";
+			system("pause");
+		}
 	}
 	else if (key == controls[Cheats])
 	{
@@ -480,6 +522,10 @@ void InGameControls()
 	else if (key == controls[Ops])
 	{
 		OptionsMenu();
+	}
+	else if (key == controls[ClearFlags])
+	{
+		FlagClear();
 	}
 
 	return;
@@ -591,7 +637,11 @@ bool CheckWinLose()
 
 	if (openedCounter == lines * columns - mineQty)
 	{
-		cout << "Congratulations! You found all " << mineQty << " mines!" << endl << endl;
+		finalTime[0] = printTime[0];
+		finalTime[1] = printTime[1];
+
+		cout << "Congratulations! You found all " << mineQty << " mines!" << endl
+			<< "Your time: " << (finalTime[0] > 9 ? "" : "0") << finalTime[0] << ":" << (finalTime[1] > 9 ? "" : "0") << finalTime[1] << endl;
 		system("pause");
 		return true;
 	}
@@ -796,6 +846,16 @@ void DrawCellFloors(char wall[], int y)
 			SetConsoleTextAttribute(hCon, BlackOnWhite);
 			cout << wall[hor] << wall[hor] << wall[hor] << (i >= columns - 1 ? wall[lowRightC] : wall[lowT]);
 			SetConsoleTextAttribute(hCon, WhiteOnBlack);
+		}
+		if (flagQty <= 0)
+		{
+			SetConsoleTextAttribute(hCon, RedOnBlack);
+			cout << "	No flags left!";
+			SetConsoleTextAttribute(hCon, WhiteOnBlack);
+		}
+		else
+		{
+			cout << "	Flags left: " << flagQty;
 		}
 	}
 }
@@ -1122,7 +1182,7 @@ void SmartFlag(int x, int y)
 				{
 					continue;
 				}
-				else if (!board[i][j].opened)
+				else if (!board[i][j].opened && flagQty > 0)
 				{
 					board[i][j].flagged = true;
 				}
@@ -1145,6 +1205,19 @@ void SmartFlag(int x, int y)
 					CheckCell(i, j);
 				}
 			}
+		}
+	}
+}
+
+// Clear all flags
+void FlagClear()
+{
+	for (int y = 0; y < lines; y++)
+	{
+		for (int x = 0; x < columns; x++)
+		{
+			board[x][y].flagged = false;
+			flagQty = mineQty;
 		}
 	}
 }
