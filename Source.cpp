@@ -565,6 +565,11 @@ void CheckCell(int x, int y)
 	// Check touching cells
 	else
 	{
+		if (board[x][y].flagged)
+		{
+			board[x][y].flagged = false;
+			flagQty++;
+		}
 		board[x][y].opened = true;
 
 		for (int j = minY; j <= maxY; j++)
@@ -899,7 +904,8 @@ void GameControls()
 		cout << "8: 'Toggle cheats' key:       " << controls[Cheats] << endl << endl;
 		SetConsoleTextAttribute(hCon, WhiteOnBlack);
 		cout << "9: 'Options' key:             " << controls[Ops] << endl << endl;
-		SetConsoleTextAttribute(hCon, WhiteOnBlack);
+		SetConsoleTextAttribute(hCon, GreenOnBlack);
+		cout << "a: 'Clear flags' key:         " << controls[ClearFlags] << endl << endl;
 		cout << "                               " << endl;
 		SetConsoleTextAttribute(hCon, RedOnBlack);
 		cout << "0: Back to options menu        " << endl;
@@ -957,6 +963,12 @@ void GameControls()
 			cout << "Current: " << controls[Cheats] << endl
 				<< "Press new key for 'Cheats'";
 			controls[Cheats] = _getch();
+			break;
+
+		case 'a':
+			cout << "Current: " << controls[ClearFlags] << endl
+				<< "Press new key for 'Clear flags'";
+			controls[ClearFlags] = _getch();
 			break;
 
 		default:
@@ -1182,9 +1194,10 @@ void SmartFlag(int x, int y)
 				{
 					continue;
 				}
-				else if (!board[i][j].opened && flagQty > 0)
+				else if (!board[i][j].opened && flagQty > 0 && !board[i][j].flagged)
 				{
 					board[i][j].flagged = true;
+					flagQty--;
 				}
 			}
 		}
