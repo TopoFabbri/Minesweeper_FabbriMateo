@@ -288,8 +288,11 @@ void GetTime()
 {
 	timeElapsed = clock() - gameInitTime;
 
-	printTime[0] = timeElapsed / 60000;
-	printTime[1] = timeElapsed / 1000 - 60 * printTime[0];
+	if (boardCreated)
+	{
+		printTime[0] = timeElapsed / 60000;
+		printTime[1] = timeElapsed / 1000 - 60 * printTime[0];
+	}
 
 	cout << "Time: " << (printTime[0] > 9 ? "" : "0") << printTime[0] << ":" << (printTime[1] > 9 ? "" : "0") << printTime[1] << endl;
 }
