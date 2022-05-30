@@ -302,6 +302,13 @@ void PrintBoard()
 {
 
 	char wall[11] = { 201, 205, 203, 187, 186, 204, 206, 185, 200, 202, 188 };					 // Cell Walls variables
+	
+	system("cls");
+	SetConsoleTextAttribute(hCon, BlackOnWhite);
+	cout << "                                                                         " << endl
+		<< "                          M I N E S W E E P E R                          " << endl
+		<< "                                                                         " << endl << endl;
+	SetConsoleTextAttribute(hCon, WhiteOnBlack);
 
 	GetTime();
 
