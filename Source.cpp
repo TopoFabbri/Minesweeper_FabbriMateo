@@ -294,7 +294,7 @@ void GetTime()
 		printTime[1] = timeElapsed / 1000 - 60 * printTime[0];
 	}
 
-	cout << "Time: " << (printTime[0] > 9 ? "" : "0") << printTime[0] << ":" << (printTime[1] > 9 ? "" : "0") << printTime[1] << endl;
+	cout << "Time: " << (printTime[0] > 9 ? "" : "0") << printTime[0] << ":" << (printTime[1] > 9 ? "" : "0") << printTime[1];
 }
 
 // Print board
@@ -309,8 +309,6 @@ void PrintBoard()
 		<< "                          M I N E S W E E P E R                          " << endl
 		<< "                                                                         " << endl << endl;
 	SetConsoleTextAttribute(hCon, WhiteOnBlack);
-
-	GetTime();
 
 	DrawColumnNumbers();
 
@@ -683,7 +681,11 @@ void DrawFirstLine(char wall[])
 	{
 		cout << wall[hor] << wall[hor] << wall[hor] << (i >= columns - 1 ? wall[upRightC] : wall[upT]);
 	}
+
 	SetConsoleTextAttribute(hCon, WhiteOnBlack);
+
+	cout << "	";
+	GetTime();
 }
 
 // Loop for each cell
@@ -1002,6 +1004,7 @@ void OptionsMenu()
 		EnterGame,
 		SetControls,
 		BoardKeys,
+		Restart,
 		Difficulty,
 		Dimensions,
 		MineAmount,
@@ -1031,7 +1034,7 @@ void OptionsMenu()
 		SetConsoleTextAttribute(hCon, (showKeys ? GreenOnBlack : RedOnBlack));
 		cout << (showKeys ? "ON" : "OFF") << endl;
 		SetConsoleTextAttribute(hCon, WhiteOnBlack);
-
+		cout << Restart << ": Restart game" << endl;
 
 		if (endGame)
 		{
@@ -1058,6 +1061,12 @@ void OptionsMenu()
 
 		case BoardKeys:
 			showKeys = !showKeys;
+			break;
+
+		case Restart:
+			endGame = true;
+			ResetBoard();
+			CreateBoard();
 			break;
 
 		case Difficulty:
