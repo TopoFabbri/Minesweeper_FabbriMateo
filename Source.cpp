@@ -56,13 +56,19 @@ enum COLORS
 	RedOnBlack = 4,
 	PurpleOnBlack = 5,
 	YellowOnBlack = 6,
-	BlueOnBlack = 11,
+	BlueOnBlack = 9,
 	OrangeOnBlack = 12,
 	WhiteOnBlack = 15,
-	BlackOnBlue = 24,
-	BlackOnRed = 72,
-	BlackOnYellow = 104,
-	BlackOnWhite = 248,
+	BlackOnBlue = 16,
+	BlackOnRed = 64,
+	BlackOnYellow = 96,
+	BlackOnWhite = 240,
+	BlueOnWhite = 241,
+	GreenOnWhite = 242,
+	CyanOnWhite = 243,
+	PurpleOnWhite = 245,
+	YellowOnWhite = 246,
+	OrangeOnWhite = 252,
 };
 
 enum KEYS
@@ -118,24 +124,6 @@ struct CELL
 #pragma endregion
 
 #pragma region VARIABLE DECLARATION
-void MineCountToColor(int mineCount);					  // Get cell color by number
-void PrintMap(POSITION cursor);							  // Print the whole board
-void ResetBoard();										  // Prepare the board for a new game
-void GameFlow();										  // Main game controller
-void CreateBoard();										  // Create a random mine pattern
-int SetCellValues(int x, int y);						  // Set the board's cell values
-void CheckCell(int x, int y);							  // Open cells
-void InGameControls();									  // Move cursor with keys
-void Menu();											  // Show menu
-bool CheckWinLose();									  // Check for winning/losing conditions
-void DrawFirstLine(char wall[]);						  // Print board's roof
-void DrawContentLines(char wall[], int y);				  // Print board's content lines
-void DrawCellFloors(char wall[], int y);				  // Print each cell's floor and divisions
-void DrawColumnNumbers();								  // Prints the first line of numbers for columns
-void GameControls();									  // Show game controls and set them
-void OptionsMenu();										  // Options menu
-void ChangeDimensions();								  // Dimensions menu
-
 HANDLE hCon = GetStdHandle(STD_OUTPUT_HANDLE);
 
 // Enumerator Variables
@@ -164,12 +152,31 @@ POSITION cursor;
 CELL board[maxLengthX][maxLengthY];
 #pragma endregion
 
+void MineCountToColor(int mineCount);					  // Get cell color by number
+void PrintBoard(POSITION cursor);						  // Print the whole board
+void ResetBoard();										  // Prepare the board for a new game
+void GameFlow();										  // Main game controller
+void CreateBoard();										  // Create a random mine pattern
+int SetCellValues(int x, int y);						  // Set the board's cell values
+void CheckCell(int x, int y);							  // Open cells
+void InGameControls();									  // Move cursor with keys
+void Menu();											  // Show menu
+bool CheckWinLose();									  // Check for winning/losing conditions
+void DrawFirstLine(char wall[]);						  // Print board's roof
+void DrawContentLines(char wall[], int y);				  // Print board's content lines
+void DrawCellFloors(char wall[], int y);				  // Print each cell's floor and divisions
+void DrawColumnNumbers();								  // Prints the first line of numbers for columns
+void GameControls();									  // Show game controls and set them
+void OptionsMenu();										  // Options menu
+void ChangeDimensions();								  // Dimensions menu
+void SmartFlag(int x, int y);							  // Smart auto-flag
+
 // Default function
 void main()
 {
 	srand(time(nullptr));
 
-	ShowWindow(GetConsoleWindow(), SW_MAXIMIZE);
+	//ShowWindow(GetConsoleWindow(), SW_MAXIMIZE);
 
 	do
 	{
@@ -209,7 +216,7 @@ void GameFlow()
 	do
 	{
 		system("cls");
-		PrintMap(cursor);
+		PrintBoard(cursor);
 		endGame = CheckWinLose();
 		if (!endGame)
 		{
@@ -268,7 +275,7 @@ void MineCountToColor(int mineCount)
 }
 
 // Print board
-void PrintMap(POSITION cursor)
+void PrintBoard(POSITION cursor)
 {
 	char wall[11] = { 201, 205, 203, 187, 186, 204, 206, 185, 200, 202, 188 };					 // Cell Walls variables
 
@@ -283,7 +290,25 @@ void PrintMap(POSITION cursor)
 
 		DrawCellFloors(wall, y);
 	}
-	cout << endl;
+	cout << endl << endl;
+	SetConsoleTextAttribute(hCon, BlueOnBlack);
+	cout << controls[Up] << ": Move up	";
+	SetConsoleTextAttribute(hCon, YellowOnBlack);
+	cout << controls[Left] << ": Move left	";
+	SetConsoleTextAttribute(hCon, PurpleOnBlack);
+	cout << controls[Right] << ": Move right	";
+	SetConsoleTextAttribute(hCon, GreenOnBlack);
+	cout << controls[Down] << ": Move down	" << endl;
+	SetConsoleTextAttribute(hCon, RedOnBlack);
+	cout << controls[Back] << ": Quit		";
+	SetConsoleTextAttribute(hCon, CyanOnBlack);
+	cout << controls[Select] << ": Select	";
+	SetConsoleTextAttribute(hCon, YellowOnBlack);
+	cout << controls[Flag] << ": Flag		";
+	SetConsoleTextAttribute(hCon, RedOnBlack);
+	cout << controls[Cheats] << ": Cheats	" << endl;
+	SetConsoleTextAttribute(hCon, WhiteOnBlack);
+	cout << controls[Ops] << ": Options	" << endl;
 
 	return;
 }
@@ -435,9 +460,16 @@ void InGameControls()
 	}
 	else if (key == controls[Select] && !board[cursor.x][cursor.y].flagged)
 	{
-		CheckCell(cursor.x, cursor.y);
+		if (!board[cursor.x][cursor.y].opened)
+		{
+			CheckCell(cursor.x, cursor.y);
+		}
+		else if (board[cursor.x][cursor.y].mineCount > 0)
+		{
+			SmartFlag(cursor.x, cursor.y);
+		}
 	}
-	else if (key == controls[Flag])
+	else if (key == controls[Flag] && !board[cursor.x][cursor.y].opened)
 	{
 		board[cursor.x][cursor.y].flagged = !board[cursor.x][cursor.y].flagged;
 	}
@@ -597,14 +629,8 @@ void DrawContentLines(char wall[], int y)
 			cout << wall[ver];
 		}
 
-		// Bomb case
-		if (board[x][y].mine && (board[x][y].opened || cheats))
-		{
-			SetConsoleTextAttribute(hCon, BlackOnRed);
-			cout << " X ";
-		}
 		// Cursor cases
-		else if (x == cursor.x && y == cursor.y)
+		if (x == cursor.x && y == cursor.y)
 		{
 			// Cursor and counter case
 			if (board[x][y].mineCount > 0 && board[x][y].opened)
@@ -616,6 +642,16 @@ void DrawContentLines(char wall[], int y)
 				SetConsoleTextAttribute(hCon, BlackOnBlue);
 				cout << "<";
 			}
+			else if (board[x][y].mine && (board[x][y].opened || cheats))
+			{
+				SetConsoleTextAttribute(hCon, BlackOnBlue);
+				cout << ">";
+				SetConsoleTextAttribute(hCon, BlackOnRed);
+				cout << "X";
+				SetConsoleTextAttribute(hCon, BlackOnBlue);
+				cout << "<";
+
+			}
 			// Cursor and flag case
 			else if (board[x][y].flagged)
 			{
@@ -625,7 +661,6 @@ void DrawContentLines(char wall[], int y)
 				cout << "!";
 				SetConsoleTextAttribute(hCon, BlackOnBlue);
 				cout << "<";
-
 			}
 			// Cursor empty case
 			else
@@ -633,6 +668,12 @@ void DrawContentLines(char wall[], int y)
 				SetConsoleTextAttribute(hCon, BlackOnBlue);
 				cout << "> <";
 			}
+		}
+		// Bomb case
+		else if (board[x][y].mine && (board[x][y].opened || cheats))
+		{
+			SetConsoleTextAttribute(hCon, BlackOnRed);
+			cout << " X ";
 		}
 		// Flag case
 		else if (board[x][y].flagged)
@@ -647,22 +688,27 @@ void DrawContentLines(char wall[], int y)
 			cout << " ";
 			if (cursor.x == x && cursor.y == y - 1 && showKeys)
 			{
+				SetConsoleTextAttribute(hCon, GreenOnWhite);
 				cout << "s";
 			}
 			else if (cursor.x == x && cursor.y == y + 1 && showKeys)
 			{
+				SetConsoleTextAttribute(hCon, BlueOnWhite);
 				cout << "w";
 			}
 			else if (cursor.x == x - 1 && cursor.y == y && showKeys)
 			{
+				SetConsoleTextAttribute(hCon, PurpleOnWhite);
 				cout << "d";
 			}
 			else if (cursor.x == x + 1 && cursor.y == y && showKeys)
 			{
+				SetConsoleTextAttribute(hCon, YellowOnWhite);
 				cout << "a";
 			}
 			else
 			{
+				SetConsoleTextAttribute(hCon, BlackOnWhite);
 				cout << " ";
 			}
 			cout << " ";
@@ -680,22 +726,27 @@ void DrawContentLines(char wall[], int y)
 			cout << " ";
 			if (cursor.x == x && cursor.y == y - 1 && showKeys)
 			{
+				SetConsoleTextAttribute(hCon, GreenOnBlack);
 				cout << "s";
 			}
 			else if (cursor.x == x && cursor.y == y + 1 && showKeys)
 			{
+				SetConsoleTextAttribute(hCon, BlueOnBlack);
 				cout << "w";
 			}
 			else if (cursor.x == x - 1 && cursor.y == y && showKeys)
 			{
+				SetConsoleTextAttribute(hCon, PurpleOnBlack);
 				cout << "d";
 			}
 			else if (cursor.x == x + 1 && cursor.y == y && showKeys)
 			{
+				SetConsoleTextAttribute(hCon, YellowOnBlack);
 				cout << "a";
 			}
 			else
 			{
+				SetConsoleTextAttribute(hCon, WhiteOnBlack);
 				cout << " ";
 			}
 			cout << " ";
@@ -770,24 +821,29 @@ void GameControls()
 		cout << "                                                                         " << endl
 			<< "                             C O N T R O L S                             " << endl
 			<< "                                                                         " << endl << endl;
+		SetConsoleTextAttribute(hCon, RedOnBlack);
+		cout << "1: 'Back' key:                " << controls[Back] << endl << endl;
+		SetConsoleTextAttribute(hCon, BlueOnBlack);
+		cout << "2: 'Navigate up' key:         " << controls[Up] << endl << endl;
+		SetConsoleTextAttribute(hCon, GreenOnBlack);
+		cout << "3: 'Navigate down' key:       " << controls[Down] << endl << endl;
+		SetConsoleTextAttribute(hCon, YellowOnBlack);
+		cout << "4: 'Navigate left' key:       " << controls[Left] << endl << endl;
+		SetConsoleTextAttribute(hCon, PurpleOnBlack);
+		cout << "5: 'Navigate right' key:      " << controls[Right] << endl << endl;
+		SetConsoleTextAttribute(hCon, CyanOnBlack);
+		cout << "6: 'Select' key:              " << controls[Select] << endl << endl;
+		SetConsoleTextAttribute(hCon, YellowOnBlack);
+		cout << "7: 'Flag' key:                " << controls[Flag] << endl << endl;
+		SetConsoleTextAttribute(hCon, OrangeOnBlack);
+		cout << "8: 'Toggle cheats' key:       " << controls[Cheats] << endl << endl;
 		SetConsoleTextAttribute(hCon, WhiteOnBlack);
-		cout << "1: 'Back' key:                " << controls[Back] << endl;
-		SetConsoleTextAttribute(hCon, BlackOnWhite);
-		cout << "2: 'Navigate up' key:         " << controls[Up] << endl;
+		cout << "9: 'Options' key:             " << controls[Ops] << endl << endl;
 		SetConsoleTextAttribute(hCon, WhiteOnBlack);
-		cout << "3: 'Navigate down' key:       " << controls[Down] << endl;
-		SetConsoleTextAttribute(hCon, BlackOnWhite);
-		cout << "4: 'Navigate left' key:       " << controls[Left] << endl;
+		cout << "                               " << endl;
+		SetConsoleTextAttribute(hCon, RedOnBlack);
+		cout << "0: Back to options menu        " << endl;
 		SetConsoleTextAttribute(hCon, WhiteOnBlack);
-		cout << "5: 'Navigate right' key:      " << controls[Right] << endl;
-		SetConsoleTextAttribute(hCon, BlackOnWhite);
-		cout << "6: 'Select' key:              " << controls[Select] << endl;
-		SetConsoleTextAttribute(hCon, WhiteOnBlack);
-		cout << "7: 'Flag' key:                " << controls[Flag] << endl;
-		SetConsoleTextAttribute(hCon, BlackOnWhite);
-		cout << "8: 'Toggle cheats' key:       " << controls[Cheats] << endl;
-		SetConsoleTextAttribute(hCon, WhiteOnBlack);
-		cout << "9: 'Options' key:             " << controls[Ops] << endl;
 
 		ans = _getch();
 
@@ -920,12 +976,13 @@ void OptionsMenu()
 			break;
 
 		case ExitOptions:
+			Nav = MainMenu;
 			break;
 
 		default:
 			break;
 		}
-	} while (ans != '0');
+	} while (ConfigOps != ExitOptions);
 }
 
 // Dimensions menu
@@ -981,4 +1038,48 @@ void ChangeDimensions()
 		}
 	} while (ans != '0');
 
+}
+
+// Smart auto-flag
+void SmartFlag(int x, int y)
+{
+	int minX = x < 1 ? x : x - 1;
+	int maxX = x >= columns - 1 ? x : x + 1;
+	int minY = y < 1 ? y : y - 1;
+	int maxY = y >= lines - 1 ? y : y + 1;
+	int openedCounter = 0;
+	int contacts = (((maxY + 1) - minY) * ((maxX + 1) - minX) - 1);
+
+	for (int j = minY; j <= maxY; j++)
+	{
+		for (int i = minX; i <= maxX; i++)
+		{
+			if (i == x && j == y)
+			{
+				continue;
+			}
+			else if (board[i][j].opened)
+			{
+				openedCounter++;
+			}
+		}
+	}
+
+	if (openedCounter >= contacts - board[x][y].mineCount)
+	{
+		for (int j = minY; j <= maxY; j++)
+		{
+			for (int i = minX; i <= maxX; i++)
+			{
+				if (i == x && j == y)
+				{
+					continue;
+				}
+				else if (!board[i][j].opened)
+				{
+					board[i][j].flagged = true;
+				}
+			}
+		}
+	}
 }
