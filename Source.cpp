@@ -560,6 +560,12 @@ void CheckCell(int x, int y)
 	else if (board[x][y].mineCount > 0)
 	{
 		board[x][y].opened = true;
+		if (board[x][y].flagged)
+		{
+			board[x][y].flagged = false;
+			flagQty++;
+		}
+
 		return;
 	}
 	// Check touching cells
