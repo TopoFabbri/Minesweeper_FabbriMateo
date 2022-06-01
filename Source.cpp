@@ -108,6 +108,14 @@ enum CHARN
 	lowRightC,							// ╝
 };
 
+enum PRESETS
+{
+	Easy = 1,
+	Normal,
+	Hard,
+	Custom
+};
+
 struct POSITION
 {
 	int x;
@@ -122,6 +130,13 @@ struct CELL
 	short mineCount;
 };
 
+struct DIFFICULTY
+{
+	string preset;
+	int columns;
+	int lines;
+	int mines;
+};
 #pragma endregion
 
 #pragma region VARIABLE DECLARATION
@@ -129,15 +144,20 @@ HANDLE hCon = GetStdHandle(STD_OUTPUT_HANDLE);
 
 // Enumerator Variables
 MODES Nav = MainMenu;
+PRESETS preset = Easy;
 
 // Max dimension variables
 const int maxLengthX = 52;
 const int maxLengthY = 25;
 
+POSITION cursor;
+CELL board[maxLengthX][maxLengthY];
+DIFFICULTY difficulty[5] = { {}, {"Easy", 8, 8, 10}, {"Normal", 16, 16, 40}, {"Hard", 22, 22, 99}, {"Custom", 20, 20, 5} };
+
 // Parameters
-int columns = 8;
-int lines = 8;
-int mineQty = 10;
+int columns = difficulty[Easy].columns;
+int lines = difficulty[Easy].lines;
+int mineQty = difficulty[Easy].mines;
 int flagQty;
 
 // Ingame modifiable
@@ -155,9 +175,6 @@ short printTime[2];
 // Game controls
 char controls[10]{ '0', 'w', 's', 'a', 'd', '1', '2', '3', '4', 'o' };
 
-POSITION cursor;
-
-CELL board[maxLengthX][maxLengthY];
 #pragma endregion
 
 void MineCountToColor(int mineCount);					  // Get cell color by number
@@ -302,12 +319,11 @@ void PrintBoard()
 {
 
 	char wall[11] = { 201, 205, 203, 187, 186, 204, 206, 185, 200, 202, 188 };					 // Cell Walls variables
-	
+
 	system("cls");
-	SetConsoleTextAttribute(hCon, BlackOnWhite);
-	cout << "                                                                         " << endl
-		<< "                          M I N E S W E E P E R                          " << endl
-		<< "                                                                         " << endl << endl;
+	cout << "  ";
+	SetConsoleTextAttribute(hCon, BlackOnRed);
+	cout << "MINESWEEPER	MATEO FABBRI" << endl;
 	SetConsoleTextAttribute(hCon, WhiteOnBlack);
 
 	DrawColumnNumbers();
@@ -1006,8 +1022,6 @@ void OptionsMenu()
 		BoardKeys,
 		Restart,
 		Difficulty,
-		Dimensions,
-		MineAmount,
 	};
 
 	CONFIGS ConfigOps;
@@ -1039,10 +1053,6 @@ void OptionsMenu()
 		if (endGame)
 		{
 			cout << Difficulty << ": Difficulty" << endl;
-			cout << Dimensions << ": Dimensions" << endl
-				<< "		Lines			Default: 8	Current: " << lines << endl
-				<< "		Columns			Default: 8	Current: " << columns << endl;
-			cout << MineAmount << ": Mine quantity		Default: 10	Current: " << mineQty << endl;
 		}
 
 		ans = _getch();
@@ -1070,36 +1080,48 @@ void OptionsMenu()
 			break;
 
 		case Difficulty:
-			break;
-
-		case Dimensions:
 			if (endGame)
 			{
-				ChangeDimensions();
+				do
+				{
+					system("cls");
+					SetConsoleTextAttribute(hCon, BlackOnWhite);
+					cout << "                                                                         " << endl
+						<< "                           D I F F I C U L T Y                           " << endl
+						<< "                                                                         " << endl << endl;
+					SetConsoleTextAttribute(hCon, WhiteOnBlack);
+
+					cout << "0: Back			" << difficulty[preset].preset << endl;
+					cout << "1: Easy" << endl
+						<< "2: Normal" << endl
+						<< "3: Hard" << endl
+						<< "4: Custom" << endl;
+					do
+					{
+						ans = _getch();
+						ans -= 48;
+					} while (ans < 0 || ans > 4);
+
+					if (ans != 0)
+					{
+
+						preset = (PRESETS)ans;
+
+						columns = difficulty[preset].columns;
+						lines = difficulty[preset].lines;
+						mineQty = difficulty[preset].mines;
+
+						if (ans == Custom)
+						{
+							ChangeDimensions();
+						}
+					}
+				} while (ans != 0);
 			}
 			break;
 
 		case ExitOptions:
 			Nav = MainMenu;
-			break;
-
-		case MineAmount:
-			if (endGame)
-			{
-				system("cls");
-				SetConsoleTextAttribute(hCon, BlackOnWhite);
-				cout << "                                                                         " << endl
-					<< "                                M I N E S                                " << endl
-					<< "                                                                         " << endl << endl;
-				SetConsoleTextAttribute(hCon, WhiteOnBlack);
-
-				cout << "Mine quantity (1 - " << lines * columns - 1 << ")		Default: 10	Current: " << mineQty << endl;
-				do
-				{
-					cin >> mineQty;
-					cout << "Input out of bounds! Try again: ";
-				} while (mineQty >= lines * columns || mineQty < 1);
-			}
 			break;
 
 		default:
@@ -1123,7 +1145,8 @@ void ChangeDimensions()
 
 		cout << "0: Back" << endl
 			<< "1: line amount			Default 8	Current: " << lines << endl
-			<< "2: Column amount		Default 8	Current: " << columns << endl;
+			<< "2: Column amount		Default 8	Current: " << columns << endl
+			<< "3: Mine amount			Default 10	Current: " << mineQty << endl;
 
 		ans = _getch();
 		switch (ans)
@@ -1169,7 +1192,15 @@ void ChangeDimensions()
 
 				cin >> mineQty;
 			}
+			break;
 
+		case '3':
+			cout << "Mine quantity (1 - " << lines * columns - 1 << ")		Default: 10	Current: " << mineQty << endl;
+			do
+			{
+				cin >> mineQty;
+				cout << "Input out of bounds! Try again: ";
+			} while (mineQty >= lines * columns || mineQty < 1);
 			break;
 
 		default:
