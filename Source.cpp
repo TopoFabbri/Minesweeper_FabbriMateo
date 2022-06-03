@@ -159,12 +159,15 @@ int columns = difficulty[Easy].columns;
 int lines = difficulty[Easy].lines;
 int mineQty = difficulty[Easy].mines;
 int flagQty;
+bool soundOn = true;
 
 // Ingame modifiable
+bool usedCheats = false;
 bool cheats = false;
 bool showKeys = true;
 bool boardCreated = false;
 bool endGame = true;
+int volume = 100;
 
 // Time variables
 float gameInitTime = 0.0f;
@@ -236,6 +239,7 @@ void GameFlow()
 {
 	boardCreated = false;
 	endGame = false;
+	usedCheats = false;
 
 	ResetBoard();
 
@@ -353,7 +357,9 @@ void PrintBoard()
 	SetConsoleTextAttribute(hCon, YellowOnBlack);
 	cout << controls[Flag] << ": Flag		";
 	SetConsoleTextAttribute(hCon, RedOnBlack);
-	cout << controls[Cheats] << ": Cheats	" << endl;
+	cout << controls[Cheats] << ": Cheats";
+	SetConsoleTextAttribute(hCon, WhiteOnBlack);
+	cout << (usedCheats ? " *used" : "") << endl;
 	SetConsoleTextAttribute(hCon, GreenOnBlack);
 	cout << controls[ClearFlags] << ": Clear flags	";
 	SetConsoleTextAttribute(hCon, WhiteOnBlack);
@@ -453,6 +459,10 @@ void InGameControls()
 
 	if (key == controls[Up])
 	{
+		if (soundOn)
+		{
+			Beep(2 * volume, 100);
+		}
 		if (cursor.y > 0)
 		{
 			cursor.y--;
@@ -464,6 +474,10 @@ void InGameControls()
 	}
 	else if (key == controls[Down])
 	{
+		if (soundOn)
+		{
+			Beep(2 * volume, 100);
+		}
 		if (cursor.y < lines - 1)
 		{
 			cursor.y++;
@@ -475,6 +489,10 @@ void InGameControls()
 	}
 	else if (key == controls[Left])
 	{
+		if (soundOn)
+		{
+			Beep(2 * volume, 100);
+		}
 		if (cursor.x > 0)
 		{
 			cursor.x--;
@@ -486,6 +504,10 @@ void InGameControls()
 	}
 	else if (key == controls[Right])
 	{
+		if (soundOn)
+		{
+			Beep(2 * volume, 100);
+		}
 		if (cursor.x < columns - 1)
 		{
 			cursor.x++;
@@ -497,6 +519,10 @@ void InGameControls()
 	}
 	else if (key == controls[Back])
 	{
+		if (soundOn)
+		{
+			Beep(1.5 * volume, 100);
+		}
 		system("cls");
 		cout << "Do you wish to go back to menu?\n0: No\n1: Yes";
 		do
@@ -514,6 +540,10 @@ void InGameControls()
 	{
 		if (!board[cursor.x][cursor.y].opened)
 		{
+			if (soundOn)
+			{
+				Beep(3 * volume, 100);
+			}
 			CheckCell(cursor.x, cursor.y);
 		}
 		else if (board[cursor.x][cursor.y].mineCount > 0)
@@ -525,11 +555,21 @@ void InGameControls()
 	{
 		if (board[cursor.x][cursor.y].flagged)
 		{
+			if (soundOn)
+			{
+				Beep(3 * volume, 50);
+				Beep(2 * volume, 50);
+			}
 			flagQty++;
 			board[cursor.x][cursor.y].flagged = false;
 		}
 		else if (flagQty > 0)
 		{
+			if (soundOn)
+			{
+				Beep(2 * volume, 50);
+				Beep(3 * volume, 50);
+			}
 			flagQty--;
 			board[cursor.x][cursor.y].flagged = true;
 		}
@@ -541,7 +581,14 @@ void InGameControls()
 	}
 	else if (key == controls[Cheats])
 	{
-		cheats = !cheats;
+	if (soundOn)
+	{
+		Beep(10 * volume, 100);
+		Beep(10 * volume, 100);
+		Beep(10 * volume, 100);
+	}
+	usedCheats = true;
+	cheats = !cheats;
 	}
 	else if (key == controls[Ops])
 	{
@@ -549,7 +596,12 @@ void InGameControls()
 	}
 	else if (key == controls[ClearFlags])
 	{
-		FlagClear();
+	if (soundOn)
+	{
+		Beep(5 * volume, 100);
+		Beep(5 * volume, 100);
+	}
+	FlagClear();
 	}
 
 	return;
@@ -575,6 +627,7 @@ void CheckCell(int x, int y)
 	// Exit if cell is opened
 	else if (board[x][y].opened)
 	{
+
 		return;
 	}
 	// Open mine if selected
@@ -662,6 +715,14 @@ bool CheckWinLose()
 			if (board[x][y].mine && board[x][y].opened)
 			{
 				cout << "KA-BOOM! You lose!" << endl << endl;
+				if (soundOn)
+				{
+					Beep(7.5 * volume, 100);
+					Beep(10 * volume, 100);
+					Beep(15 * volume, 100);
+					Beep(20 * volume, 750);
+				}
+
 				system("pause");
 				return true;
 			}
@@ -679,6 +740,18 @@ bool CheckWinLose()
 
 		cout << "Congratulations! You found all " << mineQty << " mines!" << endl
 			<< "Your time: " << (finalTime[0] > 9 ? "" : "0") << finalTime[0] << ":" << (finalTime[1] > 9 ? "" : "0") << finalTime[1] << endl;
+
+		if (soundOn)
+		{
+			Beep(5 * volume, 250);
+			Beep(7.5 * volume, 250);
+			Beep(10 * volume, 250);
+			Beep(5 * volume, 250);
+			Beep(7.5 * volume, 250);
+			Beep(10 * volume, 250);
+			Beep(15 * volume, 250);
+		}
+
 		system("pause");
 		return true;
 	}
@@ -1244,6 +1317,10 @@ void SmartFlag(int x, int y)
 
 	if (openedCounter >= contacts - board[x][y].mineCount)
 	{
+		if (soundOn)
+		{
+			Beep(4 * volume, 100);
+		}
 		for (int j = minY; j <= maxY; j++)
 		{
 			for (int i = minX; i <= maxX; i++)
@@ -1263,6 +1340,10 @@ void SmartFlag(int x, int y)
 
 	if (flagCounter == board[x][y].mineCount)
 	{
+		if (soundOn)
+		{
+			Beep(4 * volume, 100);
+		}
 		for (int j = minY; j <= maxY; j++)
 		{
 			for (int i = minX; i <= maxX; i++)
