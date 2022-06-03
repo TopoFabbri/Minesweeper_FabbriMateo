@@ -372,9 +372,9 @@ void PrintBoard()
 void ResetBoard()
 {
 	flagQty = mineQty;
-	for (int y = 0; y < lines; y++)
+	for (int y = 0; y < maxLengthY; y++)
 	{
-		for (int x = 0; x < columns; x++)
+		for (int x = 0; x < maxLengthX; x++)
 		{
 			board[x][y].mineCount = 0;
 			board[x][y].mine = false;
