@@ -167,7 +167,7 @@ bool cheats = false;
 bool showKeys = true;
 bool boardCreated = false;
 bool endGame = true;
-int volume = 100;
+int soundFreq = 100;
 
 // Time variables
 float gameInitTime = 0.0f;
@@ -461,7 +461,7 @@ void InGameControls()
 	{
 		if (soundOn)
 		{
-			Beep(2 * volume, 100);
+			Beep(2 * soundFreq, 100);
 		}
 		if (cursor.y > 0)
 		{
@@ -476,7 +476,7 @@ void InGameControls()
 	{
 		if (soundOn)
 		{
-			Beep(2 * volume, 100);
+			Beep(2 * soundFreq, 100);
 		}
 		if (cursor.y < lines - 1)
 		{
@@ -491,7 +491,7 @@ void InGameControls()
 	{
 		if (soundOn)
 		{
-			Beep(2 * volume, 100);
+			Beep(2 * soundFreq, 100);
 		}
 		if (cursor.x > 0)
 		{
@@ -506,7 +506,7 @@ void InGameControls()
 	{
 		if (soundOn)
 		{
-			Beep(2 * volume, 100);
+			Beep(2 * soundFreq, 100);
 		}
 		if (cursor.x < columns - 1)
 		{
@@ -521,7 +521,7 @@ void InGameControls()
 	{
 		if (soundOn)
 		{
-			Beep(1.5 * volume, 100);
+			Beep(1.5 * soundFreq, 100);
 		}
 		system("cls");
 		cout << "Do you wish to go back to menu?\n0: No\n1: Yes";
@@ -542,7 +542,7 @@ void InGameControls()
 		{
 			if (soundOn)
 			{
-				Beep(3 * volume, 100);
+				Beep(3 * soundFreq, 100);
 			}
 			CheckCell(cursor.x, cursor.y);
 		}
@@ -557,8 +557,8 @@ void InGameControls()
 		{
 			if (soundOn)
 			{
-				Beep(3 * volume, 50);
-				Beep(2 * volume, 50);
+				Beep(3 * soundFreq, 50);
+				Beep(2 * soundFreq, 50);
 			}
 			flagQty++;
 			board[cursor.x][cursor.y].flagged = false;
@@ -567,8 +567,8 @@ void InGameControls()
 		{
 			if (soundOn)
 			{
-				Beep(2 * volume, 50);
-				Beep(3 * volume, 50);
+				Beep(2 * soundFreq, 50);
+				Beep(3 * soundFreq, 50);
 			}
 			flagQty--;
 			board[cursor.x][cursor.y].flagged = true;
@@ -581,14 +581,14 @@ void InGameControls()
 	}
 	else if (key == controls[Cheats])
 	{
-	if (soundOn)
-	{
-		Beep(10 * volume, 100);
-		Beep(10 * volume, 100);
-		Beep(10 * volume, 100);
-	}
-	usedCheats = true;
-	cheats = !cheats;
+		if (soundOn)
+		{
+			Beep(10 * soundFreq, 100);
+			Beep(10 * soundFreq, 100);
+			Beep(10 * soundFreq, 100);
+		}
+		usedCheats = true;
+		cheats = !cheats;
 	}
 	else if (key == controls[Ops])
 	{
@@ -596,12 +596,12 @@ void InGameControls()
 	}
 	else if (key == controls[ClearFlags])
 	{
-	if (soundOn)
-	{
-		Beep(5 * volume, 100);
-		Beep(5 * volume, 100);
-	}
-	FlagClear();
+		if (soundOn)
+		{
+			Beep(5 * soundFreq, 100);
+			Beep(5 * soundFreq, 100);
+		}
+		FlagClear();
 	}
 
 	return;
@@ -717,10 +717,11 @@ bool CheckWinLose()
 				cout << "KA-BOOM! You lose!" << endl << endl;
 				if (soundOn)
 				{
-					Beep(7.5 * volume, 100);
-					Beep(10 * volume, 100);
-					Beep(15 * volume, 100);
-					Beep(20 * volume, 750);
+					Beep(10 * soundFreq, 100);
+					Beep(7.5 * soundFreq, 100);
+					Beep(5 * soundFreq, 100);
+					Beep(2.5 * soundFreq, 100);
+					Beep(2 * soundFreq, 100);
 				}
 
 				system("pause");
@@ -743,13 +744,10 @@ bool CheckWinLose()
 
 		if (soundOn)
 		{
-			Beep(5 * volume, 250);
-			Beep(7.5 * volume, 250);
-			Beep(10 * volume, 250);
-			Beep(5 * volume, 250);
-			Beep(7.5 * volume, 250);
-			Beep(10 * volume, 250);
-			Beep(15 * volume, 250);
+			Beep(7.5 * soundFreq, 100);
+			Beep(10 * soundFreq, 100);
+			Beep(15 * soundFreq, 100);
+			Beep(20 * soundFreq, 750);
 		}
 
 		system("pause");
@@ -1094,6 +1092,7 @@ void OptionsMenu()
 		ExitOptions,
 		EnterGame,
 		SetControls,
+		Audio,
 		BoardKeys,
 		Restart,
 		Difficulty,
@@ -1115,6 +1114,7 @@ void OptionsMenu()
 		cout << ExitOptions << ": Back to menu" << endl
 			<< EnterGame << ": Play" << endl
 			<< SetControls << ": In-game controls" << endl
+			<< Audio << ": Audio" << endl
 			<< BoardKeys << ": Show navigation keys			Default: ";
 		SetConsoleTextAttribute(hCon, GreenOnBlack);
 		cout << "ON	";
@@ -1123,7 +1123,10 @@ void OptionsMenu()
 		SetConsoleTextAttribute(hCon, (showKeys ? GreenOnBlack : RedOnBlack));
 		cout << (showKeys ? "ON" : "OFF") << endl;
 		SetConsoleTextAttribute(hCon, WhiteOnBlack);
-		cout << Restart << ": Restart game" << endl;
+		if (!endGame)
+		{
+			cout << Restart << ": Restart game" << endl;
+		}
 
 		if (endGame)
 		{
@@ -1142,6 +1145,62 @@ void OptionsMenu()
 
 		case SetControls:
 			GameControls();
+			break;
+
+		case Audio:
+			do
+			{
+
+				system("cls");
+				SetConsoleTextAttribute(hCon, BlackOnWhite);
+				cout << "                                                                         " << endl
+					<< "                                A U D I O                                " << endl
+					<< "                                                                         " << endl;
+				SetConsoleTextAttribute(hCon, WhiteOnBlack);
+
+				cout << endl << endl << controls[Back] << ": Back" << endl
+					<< controls[Select] << ": Sound	Default: ";
+				SetConsoleTextAttribute(hCon, RedOnBlack);
+				cout << "OFF	";
+				SetConsoleTextAttribute(hCon, WhiteOnBlack);
+				cout << "Current: ";
+				SetConsoleTextAttribute(hCon, (soundOn ? GreenOnBlack : RedOnBlack));
+				cout << (soundOn ? "ON" : "OFF") << endl;
+				SetConsoleTextAttribute(hCon, WhiteOnBlack);
+
+				cout << controls[Flag] << ": Play sound";
+
+				cout << R"(
+                          a     d
+Frequency:                < )";
+				cout << soundFreq << (soundFreq < 10 ? "  " : (soundFreq < 100 ? " " : "")) << " >" << endl;
+
+				SetConsoleTextAttribute(hCon, BlackOnWhite);
+				for (int i = 0; i <= soundFreq; i += 5)
+				{
+					cout << " ";
+				}
+				SetConsoleTextAttribute(hCon, WhiteOnBlack);
+
+				ans = _getch();
+
+				if (ans == 'a')
+				{
+					soundFreq--;
+				}
+				else if (ans == 'd')
+				{
+					soundFreq++;
+				}
+				else if (ans == controls[Select])
+				{
+					soundOn = !soundOn;
+				}
+				else if (ans == controls[Flag])
+				{
+					Beep(1 * soundFreq, 500);
+				}
+			} while (ans != controls[Back]);
 			break;
 
 		case BoardKeys:
@@ -1319,7 +1378,7 @@ void SmartFlag(int x, int y)
 	{
 		if (soundOn)
 		{
-			Beep(4 * volume, 100);
+			Beep(4 * soundFreq, 100);
 		}
 		for (int j = minY; j <= maxY; j++)
 		{
@@ -1342,7 +1401,7 @@ void SmartFlag(int x, int y)
 	{
 		if (soundOn)
 		{
-			Beep(4 * volume, 100);
+			Beep(4 * soundFreq, 100);
 		}
 		for (int j = minY; j <= maxY; j++)
 		{
