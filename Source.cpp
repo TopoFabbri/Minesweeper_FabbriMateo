@@ -56,7 +56,7 @@ enum COLORS
 	RedOnBlack = 4,
 	PurpleOnBlack = 5,
 	YellowOnBlack = 6,
-	CyanOnBlack = 3,
+	CyanOnBlack = 11,
 	OrangeOnBlack = 12,
 	WhiteOnBlack = 15,
 	BlackOnBlue = 16,
@@ -569,6 +569,8 @@ void CheckCell(int x, int y)
 		boardCreated = true;
 		board[x][y].opened = true;
 		CreateBoard();
+		board[x][y].opened = false;
+		CheckCell(x, y);
 	}
 	// Exit if cell is opened
 	else if (board[x][y].opened)
