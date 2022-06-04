@@ -158,10 +158,15 @@ COLORS numColor[8] = 									 // Mine number colors
 	RedOnBlack
 };
 
+// Windows cursor locations
+COORD postBoardLoc;
+COORD TimePosition;
+
 // Max dimension variables
 const int maxLengthX = 52;								 // Max array lengths
 const int maxLengthY = 25;								 // Max array lengths
 
+COORD curPos;
 POSITION cursor;										 // Board cursor
 CELL board[maxLengthX][maxLengthY];						 // Max container of board data
 DIFFICULTY preset[5] = 									 // Difficulty presets
@@ -223,6 +228,12 @@ void ChangeDimensions();								  // Dimensions menu
 void SmartFlag(int x, int y);							  // Smart auto-flag
 void FlagClear();										  // Clears all flags
 COLORS SelectColor();									  // Choose and return a color
+void ErasePrevCursor();									  // Delete previous cursor
+COORD BoardLocToConLoc(int x, int y);					  // Translate board coordinates to console coordinates
+void PrintCellContent(int x, int y, bool erase);		  // Prints each cell's data
+void DrawCursorCases(int x, int y);						  // Prints cell with the cursor on
+void DrawCursor();										  // Prints cursor when moved
+void GetTime();											  // Calculate and print time
 #pragma endregion
 
 // Default function
@@ -268,14 +279,18 @@ void GameFlow()
 
 	ResetBoard();
 
+	system("cls");
+	PrintBoard();
 	do
 	{
-		system("cls");
-		PrintBoard();
 		endGame = CheckWinLose();
 		if (!endGame)
 		{
 			InGameControls();
+			if (clock() % 1000 == 0)
+			{
+				GetTime();
+			}
 		}
 	} while (!endGame);
 	return;
@@ -292,13 +307,17 @@ void GetTime()
 		printTime[1] = timeElapsed / 1000 - 60 * printTime[0];
 	}
 
+	SetConsoleTextAttribute(hCon, WhiteOnBlack);
+	curPos = TimePosition;
+	SetConsoleCursorPosition(hCon, curPos);
 	cout << "Time: " << (printTime[0] > 9 ? "" : "0") << printTime[0] << ":" << (printTime[1] > 9 ? "" : "0") << printTime[1];
+	curPos = postBoardLoc;
+	SetConsoleCursorPosition(hCon, curPos);
 }
 
 // Print board
 void PrintBoard()
 {
-
 	char wall[11] = { 201, 205, 203, 187, 186, 204, 206, 185, 200, 202, 188 };					 // Cell Walls variables
 
 	system("cls");
@@ -344,6 +363,8 @@ void PrintBoard()
 	SetConsoleTextAttribute(hCon, WhiteOnBlack);
 	cout << controls[Restart] << ": Restart	";
 
+	GetTime();
+
 	return;
 }
 
@@ -361,6 +382,9 @@ void ResetBoard()
 			board[x][y].flagged = false;
 		}
 	}
+
+	postBoardLoc = { 0, (short)(lines * 2 + 7) };
+	TimePosition = { (short)(7 + 4 * columns), 3 };
 
 	return;
 }
@@ -434,10 +458,17 @@ int SetCellValues(int x, int y)
 // Get and execute in-game input
 void InGameControls()
 {
+	if (!_kbhit())
+		return;
+
 	char key = _getch();
+
+	if (key >= 65 && key <= 90)
+		key += 32;
 
 	if (key == controls[Up])
 	{
+		ErasePrevCursor();
 		if (soundOn)
 		{
 			Beep(2 * soundFreq, 100);
@@ -450,9 +481,11 @@ void InGameControls()
 		{
 			cursor.y = lines - 1;
 		}
+		DrawCursor();
 	}
 	else if (key == controls[Down])
 	{
+		ErasePrevCursor();
 		if (soundOn)
 		{
 			Beep(2 * soundFreq, 100);
@@ -465,9 +498,11 @@ void InGameControls()
 		{
 			cursor.y = 0;
 		}
+		DrawCursor();
 	}
 	else if (key == controls[Left])
 	{
+		ErasePrevCursor();
 		if (soundOn)
 		{
 			Beep(2 * soundFreq, 100);
@@ -480,9 +515,11 @@ void InGameControls()
 		{
 			cursor.x = columns - 1;
 		}
+		DrawCursor();
 	}
 	else if (key == controls[Right])
 	{
+		ErasePrevCursor();
 		if (soundOn)
 		{
 			Beep(2 * soundFreq, 100);
@@ -495,6 +532,7 @@ void InGameControls()
 		{
 			cursor.x = 0;
 		}
+		DrawCursor();
 	}
 	else if (key == controls[Back])
 	{
@@ -513,6 +551,10 @@ void InGameControls()
 		{
 			endGame = true;
 			Nav = MainMenu;
+		}
+		else
+		{
+			PrintBoard();
 		}
 	}
 	else if (key == controls[Select] && !board[cursor.x][cursor.y].flagged)
@@ -568,6 +610,7 @@ void InGameControls()
 		}
 		usedCheats = true;
 		cheats = !cheats;
+		PrintBoard();
 	}
 	else if (key == controls[Ops])
 	{
@@ -621,13 +664,13 @@ void CheckCell(int x, int y)
 	// Exit if cell is opened
 	else if (board[x][y].opened)
 	{
-
 		return;
 	}
 	// Open mine if selected
 	else if (board[x][y].mine)
 	{
 		board[x][y].opened = true;
+
 	}
 	// Stop calling recursion if touching a mine
 	else if (board[x][y].mineCount > 0)
@@ -638,8 +681,6 @@ void CheckCell(int x, int y)
 			board[x][y].flagged = false;
 			flagQty++;
 		}
-
-		return;
 	}
 	// Check touching cells
 	else
@@ -667,7 +708,15 @@ void CheckCell(int x, int y)
 		}
 	}
 
-	return;
+	curPos = BoardLocToConLoc(x, y);
+	SetConsoleCursorPosition(hCon, curPos);
+	if (x != cursor.x || y != cursor.y)
+		PrintCellContent(x, y, false);
+	else
+		DrawCursorCases(x, y);
+
+	curPos = postBoardLoc;
+	SetConsoleCursorPosition(hCon, curPos);
 }
 
 // Get menu
@@ -708,7 +757,9 @@ bool CheckWinLose()
 		{
 			if (board[x][y].mine && board[x][y].opened)
 			{
+				SetConsoleTextAttribute(hCon, BlackOnRed);
 				cout << "KA-BOOM! You lose!" << endl << endl;
+				SetConsoleTextAttribute(hCon, WhiteOnBlack);
 				if (soundOn)
 				{
 					Beep(10 * soundFreq, 100);
@@ -733,8 +784,10 @@ bool CheckWinLose()
 		finalTime[0] = printTime[0];
 		finalTime[1] = printTime[1];
 
+		SetConsoleTextAttribute(hCon, GreenOnBlack);
 		cout << "Congratulations! You found all " << mineQty << " mines!" << endl
 			<< "Your time: " << (finalTime[0] > 9 ? "" : "0") << finalTime[0] << ":" << (finalTime[1] > 9 ? "" : "0") << finalTime[1] << endl;
+		SetConsoleTextAttribute(hCon, WhiteOnBlack);
 
 		if (soundOn)
 		{
@@ -768,7 +821,6 @@ void DrawFirstLine(char wall[])
 	SetConsoleTextAttribute(hCon, WhiteOnBlack);
 
 	cout << "	";
-	GetTime();
 }
 
 // Loop for each cell
@@ -788,125 +840,11 @@ void DrawContentLines(char wall[], int y)
 		// Cursor cases
 		if (x == cursor.x && y == cursor.y)
 		{
-			// Cursor and counter case
-			if (board[x][y].mineCount > 0 && board[x][y].opened)
-			{
-				SetConsoleTextAttribute(hCon, BlackOnBlue);
-				cout << ">";
-				SetConsoleTextAttribute(hCon, numColor[board[x][y].mineCount]);
-				cout << board[x][y].mineCount;
-				SetConsoleTextAttribute(hCon, BlackOnBlue);
-				cout << "<";
-			}
-			else if (board[x][y].mine && (board[x][y].opened || cheats))
-			{
-				SetConsoleTextAttribute(hCon, BlackOnBlue);
-				cout << ">";
-				SetConsoleTextAttribute(hCon, BlackOnRed);
-				cout << "X";
-				SetConsoleTextAttribute(hCon, BlackOnBlue);
-				cout << "<";
-
-			}
-			// Cursor and flag case
-			else if (board[x][y].flagged)
-			{
-				SetConsoleTextAttribute(hCon, BlackOnBlue);
-				cout << ">";
-				SetConsoleTextAttribute(hCon, BlackOnYellow);
-				cout << "!";
-				SetConsoleTextAttribute(hCon, BlackOnBlue);
-				cout << "<";
-			}
-			// Cursor empty case
-			else
-			{
-				SetConsoleTextAttribute(hCon, BlackOnBlue);
-				cout << " X ";
-			}
+			DrawCursorCases(cursor.x, cursor.y);
 		}
-		// Bomb case
-		else if (board[x][y].mine && (board[x][y].opened || cheats))
-		{
-			SetConsoleTextAttribute(hCon, BlackOnRed);
-			cout << " X ";
-		}
-		// Flag case
-		else if (board[x][y].flagged)
-		{
-			SetConsoleTextAttribute(hCon, BlackOnYellow);
-			cout << " ! ";
-		}
-		// Empty case
-		else if (!board[x][y].opened)
-		{
-			SetConsoleTextAttribute(hCon, BlackOnWhite);
-			cout << " ";
-			if (cursor.x == x && cursor.y == y - 1 && showKeys)
-			{
-				SetConsoleTextAttribute(hCon, GreenOnWhite);
-				cout << "s";
-			}
-			else if (cursor.x == x && cursor.y == y + 1 && showKeys)
-			{
-				SetConsoleTextAttribute(hCon, BlueOnWhite);
-				cout << "w";
-			}
-			else if (cursor.x == x - 1 && cursor.y == y && showKeys)
-			{
-				SetConsoleTextAttribute(hCon, PurpleOnWhite);
-				cout << "d";
-			}
-			else if (cursor.x == x + 1 && cursor.y == y && showKeys)
-			{
-				SetConsoleTextAttribute(hCon, YellowOnWhite);
-				cout << "a";
-			}
-			else
-			{
-				SetConsoleTextAttribute(hCon, BlackOnWhite);
-				cout << " ";
-			}
-			cout << " ";
-		}
-		// Closed case
-		else if (board[x][y].mineCount > 0)
-		{
-			SetConsoleTextAttribute(hCon, numColor[board[x][y].mineCount]);
-			cout << " " << board[x][y].mineCount << " ";
-		}
-		// Empty case opened
 		else
 		{
-			SetConsoleTextAttribute(hCon, WhiteOnBlack);
-			cout << " ";
-			if (cursor.x == x && cursor.y == y - 1 && showKeys)
-			{
-				SetConsoleTextAttribute(hCon, GreenOnBlack);
-				cout << "s";
-			}
-			else if (cursor.x == x && cursor.y == y + 1 && showKeys)
-			{
-				SetConsoleTextAttribute(hCon, BlueOnBlack);
-				cout << "w";
-			}
-			else if (cursor.x == x - 1 && cursor.y == y && showKeys)
-			{
-				SetConsoleTextAttribute(hCon, PurpleOnBlack);
-				cout << "d";
-			}
-			else if (cursor.x == x + 1 && cursor.y == y && showKeys)
-			{
-				SetConsoleTextAttribute(hCon, YellowOnBlack);
-				cout << "a";
-			}
-			else
-			{
-				SetConsoleTextAttribute(hCon, WhiteOnBlack);
-				cout << " ";
-			}
-			cout << " ";
-
+			PrintCellContent(x, y, false);
 		}
 		SetConsoleTextAttribute(hCon, BlackOnWhite);
 		cout << wall[ver];
@@ -1176,6 +1114,7 @@ void OptionsMenu()
 		{
 		case EnterGame:
 			Nav = Game;
+			PrintBoard();
 			return;
 			break;
 
@@ -1255,7 +1194,7 @@ Frequency:                < )";
 						<< "                                                                         " << endl << endl;
 					SetConsoleTextAttribute(hCon, WhiteOnBlack);
 
-					cout << "0: Back			" << preset[Difficulty].preset << endl;
+					cout << "0: Back			" << preset[difficulty].preset << endl;
 					cout << "1: Easy" << endl
 						<< "2: Normal" << endl
 						<< "3: Hard" << endl
@@ -1271,9 +1210,9 @@ Frequency:                < )";
 
 						difficulty = (PRESETS)ans;
 
-						columns = preset[Difficulty].columns;
-						lines = preset[Difficulty].lines;
-						mineQty = preset[Difficulty].mines;
+						columns = preset[difficulty].columns;
+						lines = preset[difficulty].lines;
+						mineQty = preset[difficulty].mines;
 
 						if (ans == Custom)
 						{
@@ -1454,6 +1393,11 @@ void SmartFlag(int x, int y)
 				else if (!board[i][j].opened && flagQty > 0 && !board[i][j].flagged)
 				{
 					board[i][j].flagged = true;
+					curPos = BoardLocToConLoc(i, j);
+					SetConsoleCursorPosition(hCon, curPos);
+					PrintCellContent(i, j, false);
+					curPos = postBoardLoc;
+					SetConsoleCursorPosition(hCon, curPos);
 					flagQty--;
 				}
 			}
@@ -1494,6 +1438,7 @@ void FlagClear()
 			flagQty = mineQty;
 		}
 	}
+	PrintBoard();
 }
 
 // Choose and return a color
@@ -1528,4 +1473,217 @@ COLORS SelectColor()
 	} while (ans < 0 || ans > 15);
 
 	return (COLORS)ans;
+}
+
+COORD BoardLocToConLoc(int x, int y)
+{
+	COORD op;
+	op.X = (short)(3 + x * 4);
+	op.Y = (short)(3 + y * 2);
+	return op;
+}
+
+void ErasePrevCursor()
+{
+	curPos = BoardLocToConLoc(cursor.x, cursor.y);
+	SetConsoleCursorPosition(hCon, curPos);
+	SetConsoleTextAttribute(hCon, BlackOnWhite);
+	PrintCellContent(cursor.x, cursor.y, true);
+
+	if (cursor.y > 0)
+	{
+		curPos = BoardLocToConLoc(cursor.x, cursor.y - 1);
+		SetConsoleCursorPosition(hCon, curPos);
+		PrintCellContent(cursor.x, cursor.y - 1, true);
+	}
+
+	if (cursor.x > 0)
+	{
+		curPos = BoardLocToConLoc(cursor.x - 1, cursor.y);
+		SetConsoleCursorPosition(hCon, curPos);
+		PrintCellContent(cursor.x - 1, cursor.y, true);
+	}
+
+	if (cursor.x < columns - 1)
+	{
+		curPos = BoardLocToConLoc(cursor.x + 1, cursor.y);
+		SetConsoleCursorPosition(hCon, curPos);
+		PrintCellContent(cursor.x + 1, cursor.y, true);
+	}
+
+	if (cursor.y < lines - 1)
+	{
+		curPos = BoardLocToConLoc(cursor.x, cursor.y + 1);
+		SetConsoleCursorPosition(hCon, curPos);
+		PrintCellContent(cursor.x, cursor.y + 1, true);
+	}
+}
+
+void PrintCellContent(int x, int y, bool erase)
+{
+	// Bomb case
+	if (board[x][y].mine && (board[x][y].opened || cheats))
+	{
+		SetConsoleTextAttribute(hCon, BlackOnRed);
+		cout << " X ";
+	}
+	// Flag case
+	else if (board[x][y].flagged)
+	{
+		SetConsoleTextAttribute(hCon, BlackOnYellow);
+		cout << " ! ";
+	}
+	// Empty case
+	else if (!board[x][y].opened)
+	{
+		SetConsoleTextAttribute(hCon, BlackOnWhite);
+		cout << " ";
+		if (cursor.x == x && cursor.y == y - 1 && showKeys && !erase)
+		{
+			SetConsoleTextAttribute(hCon, GreenOnWhite);
+			cout << controls[Down];
+		}
+		else if (cursor.x == x && cursor.y == y + 1 && showKeys && !erase)
+		{
+			SetConsoleTextAttribute(hCon, BlueOnWhite);
+			cout << controls[Up];
+		}
+		else if (cursor.x == x - 1 && cursor.y == y && showKeys && !erase)
+		{
+			SetConsoleTextAttribute(hCon, PurpleOnWhite);
+			cout << controls[Right];
+		}
+		else if (cursor.x == x + 1 && cursor.y == y && showKeys && !erase)
+		{
+			SetConsoleTextAttribute(hCon, YellowOnWhite);
+			cout << controls[Left];
+		}
+		else
+		{
+			SetConsoleTextAttribute(hCon, BlackOnWhite);
+			cout << " ";
+		}
+		cout << " ";
+		SetConsoleTextAttribute(hCon, WhiteOnBlack);
+	}
+	// Closed case
+	else if (board[x][y].mineCount > 0)
+	{
+		SetConsoleTextAttribute(hCon, numColor[board[x][y].mineCount]);
+		cout << " " << board[x][y].mineCount << " ";
+	}
+	// Empty case opened
+	else
+	{
+		SetConsoleTextAttribute(hCon, WhiteOnBlack);
+		cout << " ";
+		if (cursor.x == x && cursor.y == y - 1 && showKeys && !erase)
+		{
+			SetConsoleTextAttribute(hCon, GreenOnBlack);
+			cout << controls[Down];
+		}
+		else if (cursor.x == x && cursor.y == y + 1 && showKeys && !erase)
+		{
+			SetConsoleTextAttribute(hCon, BlueOnBlack);
+			cout << controls[Up];
+		}
+		else if (cursor.x == x - 1 && cursor.y == y && showKeys && !erase)
+		{
+			SetConsoleTextAttribute(hCon, PurpleOnBlack);
+			cout << controls[Right];
+		}
+		else if (cursor.x == x + 1 && cursor.y == y && showKeys && !erase)
+		{
+			SetConsoleTextAttribute(hCon, YellowOnBlack);
+			cout << controls[Left];
+		}
+		else
+		{
+			SetConsoleTextAttribute(hCon, WhiteOnBlack);
+			cout << " ";
+		}
+		cout << " ";
+		SetConsoleTextAttribute(hCon, WhiteOnBlack);
+	}
+}
+
+void DrawCursorCases(int x, int y)
+{
+	// Cursor and counter case
+	if (board[x][y].mineCount > 0 && board[x][y].opened)
+	{
+		SetConsoleTextAttribute(hCon, BlackOnBlue);
+		cout << ">";
+		SetConsoleTextAttribute(hCon, numColor[board[x][y].mineCount]);
+		cout << board[x][y].mineCount;
+		SetConsoleTextAttribute(hCon, BlackOnBlue);
+		cout << "<";
+	}
+	else if (board[x][y].mine && (board[x][y].opened || cheats))
+	{
+		SetConsoleTextAttribute(hCon, BlackOnBlue);
+		cout << ">";
+		SetConsoleTextAttribute(hCon, BlackOnRed);
+		cout << "X";
+		SetConsoleTextAttribute(hCon, BlackOnBlue);
+		cout << "<";
+
+	}
+	// Cursor and flag case
+	else if (board[x][y].flagged)
+	{
+		SetConsoleTextAttribute(hCon, BlackOnBlue);
+		cout << ">";
+		SetConsoleTextAttribute(hCon, BlackOnYellow);
+		cout << "!";
+		SetConsoleTextAttribute(hCon, BlackOnBlue);
+		cout << "<";
+	}
+	// Cursor empty case
+	else
+	{
+		SetConsoleTextAttribute(hCon, BlackOnBlue);
+		cout << " X ";
+	}
+	SetConsoleTextAttribute(hCon, WhiteOnBlack);
+
+	return;
+}
+
+void DrawCursor()
+{
+	curPos = BoardLocToConLoc(cursor.x, cursor.y);
+	SetConsoleCursorPosition(hCon, curPos);
+	DrawCursorCases(cursor.x, cursor.y);
+
+	if (cursor.y > 0)
+	{
+		curPos = BoardLocToConLoc(cursor.x, cursor.y - 1);
+		SetConsoleCursorPosition(hCon, curPos);
+		PrintCellContent(cursor.x, cursor.y - 1, false);
+	}
+
+	if (cursor.x > 0)
+	{
+		curPos = BoardLocToConLoc(cursor.x - 1, cursor.y);
+		SetConsoleCursorPosition(hCon, curPos);
+		PrintCellContent(cursor.x - 1, cursor.y, false);
+	}
+
+	if (cursor.x < columns - 1)
+	{
+		curPos = BoardLocToConLoc(cursor.x + 1, cursor.y);
+		SetConsoleCursorPosition(hCon, curPos);
+		PrintCellContent(cursor.x + 1, cursor.y, false);
+	}
+
+	if (cursor.y < lines - 1)
+	{
+		curPos = BoardLocToConLoc(cursor.x, cursor.y + 1);
+		SetConsoleCursorPosition(hCon, curPos);
+		PrintCellContent(cursor.x, cursor.y + 1, false);
+	}
+
+	curPos = postBoardLoc;
+	SetConsoleCursorPosition(hCon, curPos);
 }
