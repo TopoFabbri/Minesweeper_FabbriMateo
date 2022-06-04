@@ -83,6 +83,7 @@ enum KEYS
 	Cheats,
 	ClearFlags,
 	Ops,
+	Restart,
 };
 
 enum MODES
@@ -143,44 +144,66 @@ struct DIFFICULTY
 HANDLE hCon = GetStdHandle(STD_OUTPUT_HANDLE);
 
 // Enumerator Variables
-MODES Nav = MainMenu;
-PRESETS preset = Easy;
+MODES Nav = MainMenu;									 // Scene selector
+PRESETS difficulty = Easy;								 // Difficulty selector
+COLORS numColor[8] = 									 // Mine number colors
+{
+	BlueOnBlack,
+	CyanOnBlack,
+	GreenOnBlack,
+	PurpleOnBlack,
+	YellowOnBlack,
+	WhiteOnBlack,
+	OrangeOnBlack,
+	RedOnBlack
+};
 
 // Max dimension variables
-const int maxLengthX = 52;
-const int maxLengthY = 25;
+const int maxLengthX = 52;								 // Max array lengths
+const int maxLengthY = 25;								 // Max array lengths
 
-POSITION cursor;
-CELL board[maxLengthX][maxLengthY];
-DIFFICULTY difficulty[5] = { {}, {"Easy", 8, 8, 10}, {"Normal", 16, 16, 40}, {"Hard", 22, 22, 99}, {"Custom", 20, 20, 5} };
+POSITION cursor;										 // Board cursor
+CELL board[maxLengthX][maxLengthY];						 // Max container of board data
+DIFFICULTY preset[5] = 									 // Difficulty presets
+{
+	{},
+	{"Easy", 8, 8, 10}, 								 // Easy preset
+	{"Normal", 16, 16, 40}, 							 // Normal preset
+	{"Hard", 22, 22, 99}, 								 // Hard preset
+	{"Custom", 20, 20, 5} 								 // Custom preset
+};
 
 // Parameters
-int columns = difficulty[Easy].columns;
-int lines = difficulty[Easy].lines;
-int mineQty = difficulty[Easy].mines;
-int flagQty;
-bool soundOn = true;
+int columns = preset[Easy].columns;						 // Amount of columns currently used
+int lines = preset[Easy].lines;							 // Amount of lines currently used
+int mineQty = preset[Easy].mines;						 // Amount of mines currently used
+int flagQty;											 // Amount of flags user has
+bool soundOn = true;									 // Turn sound on and of
 
 // Ingame modifiable
-bool usedCheats = false;
-bool cheats = false;
-bool showKeys = true;
-bool boardCreated = false;
-bool endGame = true;
-int soundFreq = 100;
+bool usedCheats = false;								 // Store if user has used cheats
+bool cheats = false;									 // Are cheats activated
+bool showKeys = true;									 // Show input to move to each cell
+bool boardCreated = false;								 // Is the board created?
+bool endGame = true;									 // Switch game state ingame/ended
+int soundFreq = 100;									 // Sound frequency multiplier
 
 // Time variables
-float gameInitTime = 0.0f;
-float timeElapsed = 0.0f;
-short finalTime[2];
-short printTime[2];
+float gameInitTime = 0.0f;								 // Time at which the game starts
+float timeElapsed = 0.0f;								 // Time elapsed since game starts
+short finalTime[2];										 // Time counted since game starts and ends
+short printTime[2];										 // Time converted to minutes and seconds
+short easyBests[3][2];									 // Best times in easy mode
+short normalBests[3][2];								 // Best times in normal mode
+short hardBests[3][2];									 // Best times in hard mode
 
 // Game controls
-char controls[10]{ '0', 'w', 's', 'a', 'd', '1', '2', '3', '4', 'o' };
+const char defControls[20]{ '0', 'w', 's', 'a', 'd', '1', '2', '3', '4', '5', '6' };
+char controls[20]{ '0', 'w', 's', 'a', 'd', '1', '2', '3', '4', '5', '6' };
 
 #pragma endregion
 
-void MineCountToColor(int mineCount);					  // Get cell color by number
+#pragma region FUNCTION DECLARING
 void PrintBoard();										  // Print the whole board
 void ResetBoard();										  // Prepare the board for a new game
 void GameFlow();										  // Main game controller
@@ -199,6 +222,8 @@ void OptionsMenu();										  // Options menu
 void ChangeDimensions();								  // Dimensions menu
 void SmartFlag(int x, int y);							  // Smart auto-flag
 void FlagClear();										  // Clears all flags
+COLORS SelectColor();									  // Choose and return a color
+#pragma endregion
 
 // Default function
 void main()
@@ -253,54 +278,6 @@ void GameFlow()
 			InGameControls();
 		}
 	} while (!endGame);
-	return;
-}
-
-// Get cell's color by the number it should display
-void MineCountToColor(int mineCount)
-{
-	switch (mineCount)
-	{
-	case 0:
-		SetConsoleTextAttribute(hCon, BlackOnWhite);
-		break;
-
-	case 1:
-		SetConsoleTextAttribute(hCon, BlueOnBlack);
-		break;
-
-	case 2:
-		SetConsoleTextAttribute(hCon, CyanOnBlack);
-		break;
-
-	case 3:
-		SetConsoleTextAttribute(hCon, GreenOnBlack);
-		break;
-
-	case 4:
-		SetConsoleTextAttribute(hCon, PurpleOnBlack);
-		break;
-
-	case 5:
-		SetConsoleTextAttribute(hCon, YellowOnBlack);
-		break;
-
-	case 6:
-		SetConsoleTextAttribute(hCon, WhiteOnBlack);
-		break;
-
-	case 7:
-		SetConsoleTextAttribute(hCon, OrangeOnBlack);
-		break;
-
-	case 8:
-		SetConsoleTextAttribute(hCon, RedOnBlack);
-		break;
-
-	default:
-		break;
-	}
-
 	return;
 }
 
@@ -362,8 +339,10 @@ void PrintBoard()
 	cout << (usedCheats ? " *used" : "") << endl;
 	SetConsoleTextAttribute(hCon, GreenOnBlack);
 	cout << controls[ClearFlags] << ": Clear flags	";
+	SetConsoleTextAttribute(hCon, PurpleOnBlack);
+	cout << controls[Ops] << ": Options	";
 	SetConsoleTextAttribute(hCon, WhiteOnBlack);
-	cout << controls[Ops] << ": Options	" << endl;
+	cout << controls[Restart] << ": Restart	";
 
 	return;
 }
@@ -592,6 +571,10 @@ void InGameControls()
 	}
 	else if (key == controls[Ops])
 	{
+		if (soundOn)
+		{
+			Beep(1.5 * soundFreq, 150);
+		}
 		OptionsMenu();
 	}
 	else if (key == controls[ClearFlags])
@@ -602,6 +585,17 @@ void InGameControls()
 			Beep(5 * soundFreq, 100);
 		}
 		FlagClear();
+	}
+	else if (key == controls[Restart])
+	{
+		Beep(10 * soundFreq, 150);
+		Beep(5 * soundFreq, 150);
+		Beep(2.5 * soundFreq, 150);
+		Beep(5 * soundFreq, 200);
+
+		endGame = true;
+		ResetBoard();
+		CreateBoard();
 	}
 
 	return;
@@ -799,7 +793,7 @@ void DrawContentLines(char wall[], int y)
 			{
 				SetConsoleTextAttribute(hCon, BlackOnBlue);
 				cout << ">";
-				MineCountToColor(board[x][y].mineCount);
+				SetConsoleTextAttribute(hCon, numColor[board[x][y].mineCount]);
 				cout << board[x][y].mineCount;
 				SetConsoleTextAttribute(hCon, BlackOnBlue);
 				cout << "<";
@@ -878,7 +872,7 @@ void DrawContentLines(char wall[], int y)
 		// Closed case
 		else if (board[x][y].mineCount > 0)
 		{
-			MineCountToColor(board[x][y].mineCount);
+			SetConsoleTextAttribute(hCon, numColor[board[x][y].mineCount]);
 			cout << " " << board[x][y].mineCount << " ";
 		}
 		// Empty case opened
@@ -985,101 +979,146 @@ void DrawColumnNumbers()
 // View/set controls
 void GameControls()
 {
+	int page = 1;
 	char ans;
 	do
 	{
 		system("cls");
-		SetConsoleTextAttribute(hCon, BlackOnWhite);
-		cout << "                                                                         " << endl
-			<< "                             C O N T R O L S                             " << endl
-			<< "                                                                         " << endl << endl;
-		SetConsoleTextAttribute(hCon, RedOnBlack);
-		cout << "1: 'Back' key:                " << controls[Back] << endl << endl;
-		SetConsoleTextAttribute(hCon, BlueOnBlack);
-		cout << "2: 'Navigate up' key:         " << controls[Up] << endl << endl;
-		SetConsoleTextAttribute(hCon, GreenOnBlack);
-		cout << "3: 'Navigate down' key:       " << controls[Down] << endl << endl;
-		SetConsoleTextAttribute(hCon, YellowOnBlack);
-		cout << "4: 'Navigate left' key:       " << controls[Left] << endl << endl;
-		SetConsoleTextAttribute(hCon, PurpleOnBlack);
-		cout << "5: 'Navigate right' key:      " << controls[Right] << endl << endl;
-		SetConsoleTextAttribute(hCon, CyanOnBlack);
-		cout << "6: 'Select' key:              " << controls[Select] << endl << endl;
-		SetConsoleTextAttribute(hCon, YellowOnBlack);
-		cout << "7: 'Flag' key:                " << controls[Flag] << endl << endl;
-		SetConsoleTextAttribute(hCon, OrangeOnBlack);
-		cout << "8: 'Toggle cheats' key:       " << controls[Cheats] << endl << endl;
-		SetConsoleTextAttribute(hCon, WhiteOnBlack);
-		cout << "9: 'Options' key:             " << controls[Ops] << endl << endl;
-		SetConsoleTextAttribute(hCon, GreenOnBlack);
-		cout << "a: 'Clear flags' key:         " << controls[ClearFlags] << endl << endl;
-		cout << "                               " << endl;
-		SetConsoleTextAttribute(hCon, RedOnBlack);
-		cout << "0: Back to options menu        " << endl;
-		SetConsoleTextAttribute(hCon, WhiteOnBlack);
-
-		ans = _getch();
-
-		system("cls");
-
-		switch (ans)
+		if (page == 1)
 		{
-		case '1':
-			cout << "Current: " << controls[Back] << endl
-				<< "Press new key for 'Back'";
-			controls[Back] = _getch();
-			break;
+			SetConsoleTextAttribute(hCon, BlackOnWhite);
+			cout << "                                                                         " << endl
+				<< "                             C O N T R O L S                             " << endl
+				<< "Page 1                                                                   " << endl << endl;
 
-		case '2':
-			cout << "Current: " << controls[Up] << endl
-				<< "Press new key for 'Navigate up'";
-			controls[Up] = _getch();
-			break;
+			SetConsoleTextAttribute(hCon, RedOnBlack);
+			cout << "1: 'Back' key:                " << controls[Back] << endl << endl;
+			SetConsoleTextAttribute(hCon, BlueOnBlack);
+			cout << "2: 'Navigate up' key:         " << controls[Up] << endl << endl;
+			SetConsoleTextAttribute(hCon, GreenOnBlack);
+			cout << "3: 'Navigate down' key:       " << controls[Down] << endl << endl;
+			SetConsoleTextAttribute(hCon, YellowOnBlack);
+			cout << "4: 'Navigate left' key:       " << controls[Left] << endl << endl;
+			SetConsoleTextAttribute(hCon, PurpleOnBlack);
+			cout << "5: 'Navigate right' key:      " << controls[Right] << endl << endl;
+			SetConsoleTextAttribute(hCon, CyanOnBlack);
+			cout << "6: 'Select' key:              " << controls[Select] << endl << endl;
+			SetConsoleTextAttribute(hCon, YellowOnBlack);
+			cout << "7: 'Flag' key:                " << controls[Flag] << endl << endl;
+			SetConsoleTextAttribute(hCon, OrangeOnBlack);
+			cout << "8: 'Toggle cheats' key:       " << controls[Cheats] << endl << endl;
+			SetConsoleTextAttribute(hCon, WhiteOnBlack);
+			cout << "9: Page 2" << endl << endl;
+			SetConsoleTextAttribute(hCon, RedOnBlack);
+			cout << "                               " << endl;
+			cout << "0: Back to options menu        " << endl;
+			SetConsoleTextAttribute(hCon, WhiteOnBlack);
 
-		case '3':
-			cout << "Current: " << controls[Down] << endl
-				<< "Press new key for 'Navigate down'";
-			controls[Down] = _getch();
-			break;
+			ans = _getch();
 
-		case '4':
-			cout << "Current: " << controls[Left] << endl
-				<< "Press new key for 'Navigate left'";
-			controls[Left] = _getch();
-			break;
+			system("cls");
 
-		case '5':
-			cout << "Current: " << controls[Right] << endl
-				<< "Press new key for 'Navigate right'";
-			controls[Right] = _getch();
-			break;
+			switch (ans)
+			{
+			case '1':
+				cout << "Current: " << controls[Back] << endl
+					<< "Press new key for 'Back'";
+				controls[Back] = _getch();
+				break;
 
-		case '6':
-			cout << "Current: " << controls[Select] << endl
-				<< "Press new key for 'Select'";
-			controls[Select] = _getch();
-			break;
+			case '2':
+				cout << "Current: " << controls[Up] << endl
+					<< "Press new key for 'Navigate up'";
+				controls[Up] = _getch();
+				break;
 
-		case '7':
-			cout << "Current: " << controls[Flag] << endl
-				<< "Press new key for 'Flag'";
-			controls[Flag] = _getch();
-			break;
+			case '3':
+				cout << "Current: " << controls[Down] << endl
+					<< "Press new key for 'Navigate down'";
+				controls[Down] = _getch();
+				break;
 
-		case '8':
-			cout << "Current: " << controls[Cheats] << endl
-				<< "Press new key for 'Cheats'";
-			controls[Cheats] = _getch();
-			break;
+			case '4':
+				cout << "Current: " << controls[Left] << endl
+					<< "Press new key for 'Navigate left'";
+				controls[Left] = _getch();
+				break;
 
-		case 'a':
-			cout << "Current: " << controls[ClearFlags] << endl
-				<< "Press new key for 'Clear flags'";
-			controls[ClearFlags] = _getch();
-			break;
+			case '5':
+				cout << "Current: " << controls[Right] << endl
+					<< "Press new key for 'Navigate right'";
+				controls[Right] = _getch();
+				break;
 
-		default:
-			break;
+			case '6':
+				cout << "Current: " << controls[Select] << endl
+					<< "Press new key for 'Select'";
+				controls[Select] = _getch();
+				break;
+
+			case '7':
+				cout << "Current: " << controls[Flag] << endl
+					<< "Press new key for 'Flag'";
+				controls[Flag] = _getch();
+				break;
+
+			case '8':
+				cout << "Current: " << controls[Cheats] << endl
+					<< "Press new key for 'Cheats'";
+				controls[Cheats] = _getch();
+				break;
+
+			case '9':
+				page = 2;
+				break;
+
+			default:
+				break;
+			}
+		}
+		else
+		{
+			system("cls");
+			SetConsoleTextAttribute(hCon, BlackOnWhite);
+			cout << "                                                                         " << endl
+				<< "                             C O N T R O L S                             " << endl
+				<< "Page 2                                                                   " << endl << endl;
+
+			SetConsoleTextAttribute(hCon, GreenOnBlack);
+			cout << "1: 'Clear flags' key:         " << controls[ClearFlags] << endl << endl;
+			SetConsoleTextAttribute(hCon, YellowOnBlack);
+			cout << "2: 'Options' key:             " << controls[Ops] << endl << endl;
+			SetConsoleTextAttribute(hCon, WhiteOnBlack);
+			cout << "9: Page 1" << endl << endl;
+			SetConsoleTextAttribute(hCon, RedOnBlack);
+			cout << "                               " << endl;
+			cout << "0: Back to options menu        " << endl;
+			SetConsoleTextAttribute(hCon, WhiteOnBlack);
+
+			ans = _getch();
+
+			system("cls");
+
+			switch (ans)
+			{
+			case '1':
+				cout << "Current: " << controls[ClearFlags] << endl
+					<< "Press new key for 'FlagClear'";
+				controls[ClearFlags] = _getch();
+				break;
+
+			case '2':
+				cout << "Current: " << controls[Options] << endl
+					<< "Press new key for 'Options'";
+				controls[Options] = _getch();
+				break;
+
+			case '9':
+				page = 1;
+
+			default:
+				break;
+			}
 		}
 	} while (ans != '0');
 }
@@ -1094,7 +1133,7 @@ void OptionsMenu()
 		SetControls,
 		Audio,
 		BoardKeys,
-		Restart,
+		Colors,
 		Difficulty,
 	};
 
@@ -1123,10 +1162,7 @@ void OptionsMenu()
 		SetConsoleTextAttribute(hCon, (showKeys ? GreenOnBlack : RedOnBlack));
 		cout << (showKeys ? "ON" : "OFF") << endl;
 		SetConsoleTextAttribute(hCon, WhiteOnBlack);
-		if (!endGame)
-		{
-			cout << Restart << ": Restart game" << endl;
-		}
+		cout << Colors << ": Change colors" << endl;
 
 		if (endGame)
 		{
@@ -1207,12 +1243,6 @@ Frequency:                < )";
 			showKeys = !showKeys;
 			break;
 
-		case Restart:
-			endGame = true;
-			ResetBoard();
-			CreateBoard();
-			break;
-
 		case Difficulty:
 			if (endGame)
 			{
@@ -1225,7 +1255,7 @@ Frequency:                < )";
 						<< "                                                                         " << endl << endl;
 					SetConsoleTextAttribute(hCon, WhiteOnBlack);
 
-					cout << "0: Back			" << difficulty[preset].preset << endl;
+					cout << "0: Back			" << preset[Difficulty].preset << endl;
 					cout << "1: Easy" << endl
 						<< "2: Normal" << endl
 						<< "3: Hard" << endl
@@ -1239,11 +1269,11 @@ Frequency:                < )";
 					if (ans != 0)
 					{
 
-						preset = (PRESETS)ans;
+						difficulty = (PRESETS)ans;
 
-						columns = difficulty[preset].columns;
-						lines = difficulty[preset].lines;
-						mineQty = difficulty[preset].mines;
+						columns = preset[Difficulty].columns;
+						lines = preset[Difficulty].lines;
+						mineQty = preset[Difficulty].mines;
 
 						if (ans == Custom)
 						{
@@ -1255,7 +1285,40 @@ Frequency:                < )";
 			break;
 
 		case ExitOptions:
+			endGame = true;
 			Nav = MainMenu;
+			break;
+
+		case Colors:
+			do
+			{
+
+				do
+				{
+					system("cls");
+					SetConsoleTextAttribute(hCon, BlackOnWhite);
+					cout << "                                                                         " << endl
+						<< "                               C O L O R S                               " << endl
+						<< "                                                                         " << endl << endl;
+					SetConsoleTextAttribute(hCon, WhiteOnBlack);
+
+					for (int i = 1; i <= 8; i++)
+					{
+						SetConsoleTextAttribute(hCon, numColor[i]);
+						cout << i;
+						SetConsoleTextAttribute(hCon, WhiteOnBlack);
+						cout << (i % 4 == 0 ? "\n\n" : "	");
+					}
+					cout << "Press 0 to go back";
+					ans = _getch();
+					ans -= 48;
+
+					if (ans > 0)
+					{
+						numColor[(int)ans] = SelectColor();
+					}
+				} while (ans < 0 || ans > 8);
+			} while (ans != 0);
 			break;
 
 		default:
@@ -1431,4 +1494,38 @@ void FlagClear()
 			flagQty = mineQty;
 		}
 	}
+}
+
+// Choose and return a color
+COLORS SelectColor()
+{
+	int ans;
+	COLORS selected;
+
+	system("cls");
+	SetConsoleTextAttribute(hCon, BlackOnWhite);
+	cout << "                                                                         " << endl
+		<< "                               C O L O R S                               " << endl
+		<< "                                                                         " << endl << endl;
+	SetConsoleTextAttribute(hCon, WhiteOnBlack);
+
+	cout << "Enter one of the following numbers:" << endl;
+	for (int i = 0; i <= 15; i++)
+	{
+		SetConsoleTextAttribute(hCon, i);
+		cout << " " << i << " ";
+		SetConsoleTextAttribute(hCon, WhiteOnBlack);
+		cout << (i % 5 == 0 ? "\n\n" : "		");
+	}
+
+	do
+	{
+		cin >> ans;
+		if (ans < 0 || ans > 15)
+		{
+			cout << "Input out of bounds. Try again: ";
+		}
+	} while (ans < 0 || ans > 15);
+
+	return (COLORS)ans;
 }
