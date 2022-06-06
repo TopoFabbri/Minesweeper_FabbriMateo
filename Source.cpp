@@ -33,20 +33,20 @@ using namespace std;
 		2. Hacer un cronómetro para que al final el juego indique el tiempo
 			transcurrido. NO tiene que mostrarse en pantalla ni actualizarse.
 			*mirar ejemplo provisto*
-	*/
+*/
 
-	// INDICATIONS:
-	/*
-		- NO se pueden utilizar vectores, colas, pilas o listas. (no es lo mismo
-			"vector" que "array").
-		- Realizar primero las condiciones mínimas, luego las avanzadas y
-			finalmente las "ultimate conditions" en este orden. No se tendrán en
-			cuenta las consignas realizadas de un nivel superior a menos que
-			primero estén completas las del nivel anterior.
-		- El trabajo se considera aprobado una vez que se cumplan todas las
-			"condiciones mínimas", es decir que se puede entregar el trabajo con
-			sólo la primera parte de las consignas.
-	*/
+// INDICATIONS:
+/*
+	- NO se pueden utilizar vectores, colas, pilas o listas. (no es lo mismo
+		"vector" que "array").
+	- Realizar primero las condiciones mínimas, luego las avanzadas y
+		finalmente las "ultimate conditions" en este orden. No se tendrán en
+		cuenta las consignas realizadas de un nivel superior a menos que
+		primero estén completas las del nivel anterior.
+	- El trabajo se considera aprobado una vez que se cumplan todas las
+		"condiciones mínimas", es decir que se puede entregar el trabajo con
+		sólo la primera parte de las consignas.
+*/
 
 #pragma region ENUMS AND STRUCTS
 enum COLORS
@@ -199,9 +199,24 @@ float gameInitTime = 0.0f;								 // Time at which the game starts
 float timeElapsed = 0.0f;								 // Time elapsed since game starts
 short finalTime[2];										 // Time counted since game starts and ends
 short printTime[2];										 // Time converted to minutes and seconds
-short easyBests[3][2];									 // Best times in easy mode
-short normalBests[3][2];								 // Best times in normal mode
-short hardBests[3][2];									 // Best times in hard mode
+short easyBests[3][2] =									 // Best times in easy mode
+{
+	{0, 11},
+	{0, 13},
+	{0, 14}
+};
+short normalBests[3][2]								 // Best times in normal mode
+{
+	{ 2, 29 },
+	{ 30, 00 },
+	{ 30, 00 }
+};
+short hardBests[3][2]									 // Best times in hard mode
+{
+	{ 5, 21 },
+	{ 9, 06 },
+	{ 14, 8 }
+};
 
 // Game controls
 const char defControls[20]{ '0', 'w', 's', 'a', 'd', '1', '2', '3', '4', '5', '6' };
@@ -231,7 +246,7 @@ void FlagClear();										  // Clears all flags
 COLORS SelectColor();									  // Choose and return a color
 void ErasePrevCursor();									  // Delete previous cursor
 COORD BoardLocToConLoc(int x, int y);					  // Translate board coordinates to console coordinates
-void DrawCellContent(int x, int y, bool erase);		  // Prints each cell's data
+void DrawCellContent(int x, int y, bool erase);			  // Prints each cell's data
 void DrawCursorCases(int x, int y);						  // Prints cell with the cursor on
 void DrawCursor();										  // Prints cursor when moved
 void GetTime();											  // Calculate and print time
@@ -271,7 +286,7 @@ void main()
 	return;
 }
 
-// Main controlle for the gameplay
+// Main controller for the gameplay
 void GameFlow()
 {
 	boardCreated = false;
@@ -339,28 +354,62 @@ void DrawBoard()
 		DrawCellFloors(wall, y);
 	}
 	cout << endl << endl;
+
+	curPos = { (short)(7 + columns * 4), 4 };
+	SetConsoleCursorPosition(hCon, curPos);
 	SetConsoleTextAttribute(hCon, BlueOnBlack);
 	cout << controls[Up] << ": Move up	";
+
+	curPos = { (short)(7 + columns * 4), (short)(curPos.Y + 1) };
+	SetConsoleCursorPosition(hCon, curPos);
 	SetConsoleTextAttribute(hCon, YellowOnBlack);
 	cout << controls[Left] << ": Move left	";
+
+	curPos = { (short)(7 + columns * 4), (short)(curPos.Y + 1) };
+	SetConsoleCursorPosition(hCon, curPos);
 	SetConsoleTextAttribute(hCon, PurpleOnBlack);
 	cout << controls[Right] << ": Move right	";
+
+	curPos = { (short)(7 + columns * 4), (short)(curPos.Y + 1) };
+	SetConsoleCursorPosition(hCon, curPos);
 	SetConsoleTextAttribute(hCon, GreenOnBlack);
 	cout << controls[Down] << ": Move down	" << endl;
+
+	curPos = { (short)(7 + columns * 4), (short)(curPos.Y + 1) };
+	SetConsoleCursorPosition(hCon, curPos);
 	SetConsoleTextAttribute(hCon, RedOnBlack);
 	cout << controls[Back] << ": Quit		";
+
+	curPos = { (short)(7 + columns * 4), (short)(curPos.Y + 1) };
+	SetConsoleCursorPosition(hCon, curPos);
 	SetConsoleTextAttribute(hCon, CyanOnBlack);
 	cout << controls[Select] << ": Select	";
+
+	curPos = { (short)(7 + columns * 4), (short)(curPos.Y + 1) };
+	SetConsoleCursorPosition(hCon, curPos);
 	SetConsoleTextAttribute(hCon, YellowOnBlack);
 	cout << controls[Flag] << ": Flag		";
+
+	curPos = { (short)(7 + columns * 4), (short)(curPos.Y + 1) };
+	SetConsoleCursorPosition(hCon, curPos);
 	SetConsoleTextAttribute(hCon, RedOnBlack);
 	cout << controls[Cheats] << ": Cheats";
+
 	SetConsoleTextAttribute(hCon, WhiteOnBlack);
 	cout << (usedCheats ? " *used" : "") << endl;
+
+	curPos = { (short)(7 + columns * 4), (short)(curPos.Y + 1) };
+	SetConsoleCursorPosition(hCon, curPos);
 	SetConsoleTextAttribute(hCon, GreenOnBlack);
 	cout << controls[ClearFlags] << ": Clear flags	";
+
+	curPos = { (short)(7 + columns * 4), (short)(curPos.Y + 1) };
+	SetConsoleCursorPosition(hCon, curPos);
 	SetConsoleTextAttribute(hCon, PurpleOnBlack);
 	cout << controls[Ops] << ": Options	";
+
+	curPos = { (short)(7 + columns * 4), (short)(curPos.Y + 1) };
+	SetConsoleCursorPosition(hCon, curPos);
 	SetConsoleTextAttribute(hCon, WhiteOnBlack);
 	cout << controls[Restart] << ": Restart	";
 
@@ -372,6 +421,7 @@ void DrawBoard()
 // Set all cells' values to 0
 void ResetBoard()
 {
+	cursor = { 0, 0 };
 	flagQty = mineQty;
 	for (int y = 0; y < maxLengthY; y++)
 	{
@@ -385,7 +435,7 @@ void ResetBoard()
 	}
 
 	postBoardLoc = { 0, (short)(lines * 2 + 7) };
-	TimePosition = { (short)(7 + 4 * columns), 3 };
+	TimePosition = { (short)(7 + 4 * columns), 2 };
 	FlagNumLoc = { (short)(20 + 4 * columns), (short)(2 + 2 * lines) };
 
 	return;
@@ -646,10 +696,13 @@ void InGameControls()
 	}
 	else if (key == controls[Restart])
 	{
-		Beep(10 * soundFreq, 150);
-		Beep(5 * soundFreq, 150);
-		Beep(2.5 * soundFreq, 150);
-		Beep(5 * soundFreq, 200);
+		if (soundOn)
+		{
+			Beep(10 * soundFreq, 150);
+			Beep(5 * soundFreq, 150);
+			Beep(2.5 * soundFreq, 150);
+			Beep(5 * soundFreq, 200);
+		}
 
 		endGame = true;
 		ResetBoard();
@@ -810,6 +863,117 @@ bool CheckWinLose()
 			Beep(10 * soundFreq, 100);
 			Beep(15 * soundFreq, 100);
 			Beep(20 * soundFreq, 750);
+		}
+
+		switch (difficulty)
+		{
+		case Easy:
+		{
+			if (finalTime[0] < easyBests[0][0] || (finalTime[0] == easyBests[0][0] && finalTime[1] < easyBests[0][1]))
+			{
+				for (int i = 3 - 1; i > 0; i--)
+				{
+					easyBests[i][0] = easyBests[i - 1][0];
+					easyBests[i][1] = easyBests[i - 1][1];
+				}
+				easyBests[0][0] = finalTime[0];
+				easyBests[0][1] = finalTime[1];
+			}
+			else if (finalTime[0] < easyBests[1][0] || (finalTime[0] == easyBests[1][0] && finalTime[1] < easyBests[1][1]))
+			{
+				easyBests[2][0] = easyBests[1][0];
+				easyBests[2][1] = easyBests[1][1];
+
+				easyBests[1][0] = finalTime[0];
+				easyBests[1][1] = finalTime[1];
+			}
+			else if (finalTime[0] < easyBests[2][0] || (finalTime[0] == easyBests[2][0] && finalTime[1] < easyBests[2][1]))
+			{
+				easyBests[2][0] = finalTime[0];
+				easyBests[2][1] = finalTime[1];
+
+			}
+
+			cout << "Best easy times: " << endl;
+			for (int i = 0; i < 3; i++)
+			{
+				cout << i + 1 << ": " << easyBests[i][0] << ":" << easyBests[i][1] << endl;
+			}
+		}break;
+
+		case Normal:
+		{
+			if (finalTime[0] < easyBests[0][0] || (finalTime[0] == easyBests[0][0] && finalTime[1] < easyBests[0][1]))
+			{
+				for (int i = 3 - 1; i > 0; i--)
+				{
+					normalBests[i][0] = normalBests[i - 1][0];
+					normalBests[i][1] = normalBests[i - 1][1];
+				}
+				normalBests[0][0] = finalTime[0];
+				normalBests[0][1] = finalTime[1];
+			}
+			else if (finalTime[0] < normalBests[1][0] || (finalTime[0] == normalBests[1][0] && finalTime[1] < normalBests[1][1]))
+			{
+				normalBests[2][0] = normalBests[1][0];
+				normalBests[2][1] = normalBests[1][1];
+
+				normalBests[1][0] = finalTime[0];
+				normalBests[1][1] = finalTime[1];
+			}
+			else if (finalTime[0] < normalBests[2][0] || (finalTime[0] == normalBests[2][0] && finalTime[1] < normalBests[2][1]))
+			{
+				normalBests[2][0] = finalTime[0];
+				normalBests[2][1] = finalTime[1];
+
+			}
+
+			cout << "Best normal times: " << endl;
+			for (int i = 0; i < 3; i++)
+			{
+				cout << i + 1 << ": " << normalBests[i][0] << ":" << normalBests[i][1] << endl;
+			}
+		}break;
+
+		case Hard:
+		{
+			if (finalTime[0] < hardBests[0][0] || (finalTime[0] == hardBests[0][0] && finalTime[1] < hardBests[0][1]))
+			{
+				for (int i = 3 - 1; i > 0; i--)
+				{
+					hardBests[i][0] = hardBests[i - 1][0];
+					hardBests[i][1] = hardBests[i - 1][1];
+				}
+				hardBests[0][0] = finalTime[0];
+				hardBests[0][1] = finalTime[1];
+			}
+			else if (finalTime[0] < hardBests[1][0] || (finalTime[0] == hardBests[1][0] && finalTime[1] < hardBests[1][1]))
+			{
+				hardBests[2][0] = hardBests[1][0];
+				hardBests[2][1] = hardBests[1][1];
+
+				hardBests[1][0] = finalTime[0];
+				hardBests[1][1] = finalTime[1];
+			}
+			else if (finalTime[0] < hardBests[2][0] || (finalTime[0] == hardBests[2][0] && finalTime[1] < hardBests[2][1]))
+			{
+				hardBests[2][0] = finalTime[0];
+				hardBests[2][1] = finalTime[1];
+
+			}
+
+			cout << "Best hard times: " << endl;
+			for (int i = 0; i < 3; i++)
+			{
+				cout << i + 1 << ": " << hardBests[i][0] << ":" << hardBests[i][1] << endl;
+			}
+		}break;
+
+		case Custom:
+			break;
+
+		default:
+			break;
 		}
 
 		system("pause");
@@ -1307,16 +1471,16 @@ void ChangeDimensions()
 
 			// Select amount of lines
 		case '1':
-			cout << endl << "Enter the amount of lines on the tilemap (1 - " << maxLengthY << "): ";
+			cout << endl << "Enter the amount of lines on the tilemap (8 - " << maxLengthY << "): ";
 			do
 			{
 				cin >> lines;
 				cout << "Input out of bounds. Try again: ";
-			} while (lines < 1 || lines > maxLengthY);
+			} while (lines < 8 || lines > maxLengthY);
 
-			while (mineQty >= lines * columns)
+			while (mineQty >= lines * columns || mineQty < 10)
 			{
-				cout << "There can't be more mines than cells. Please enter a new amount of mines (1 - " << lines * columns - 1 << "): ";
+				cout << "There can't be more mines than cells. Please enter a new amount of mines (10 - " << lines * columns - 1 << "): ";
 
 				cin >> mineQty;
 			}
@@ -1325,33 +1489,33 @@ void ChangeDimensions()
 
 			// Select amount of columns
 		case '2':
-			cout << endl << "Enter the amount of columns on the tilemap (1 - " << maxLengthX << "): ";
+			cout << endl << "Enter the amount of columns on the tilemap (8 - " << maxLengthX << "): ";
 			do
 			{
 				cin >> columns;
 				cout << "Input out of bounds. Try again: ";
-			} while (columns < 1 || columns > maxLengthX);
+			} while (columns < 8 || columns > maxLengthX);
 
 			if (columns > 25)
 			{
 				ShowWindow(GetConsoleWindow(), SW_MAXIMIZE);
 			}
 
-			while (mineQty >= lines * columns)
+			while (mineQty >= lines * columns || mineQty < 10)
 			{
-				cout << "There can't be more mines than cells. Please enter a new amount of mines (1 - " << lines * columns - 1 << "): ";
+				cout << "There can't be more mines than cells. Please enter a new amount of mines (10 - " << lines * columns - 1 << "): ";
 
 				cin >> mineQty;
 			}
 			break;
 
 		case '3':
-			cout << "Mine quantity (1 - " << lines * columns - 1 << ")		Default: 10	Current: " << mineQty << endl;
+			cout << "Mine quantity (10 - " << lines * columns - 1 << ")		Default: 10	Current: " << mineQty << endl;
 			do
 			{
 				cin >> mineQty;
 				cout << "Input out of bounds! Try again: ";
-			} while (mineQty >= lines * columns || mineQty < 1);
+			} while (mineQty >= lines * columns || mineQty < 10);
 			break;
 
 		default:
