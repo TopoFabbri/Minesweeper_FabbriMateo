@@ -169,7 +169,7 @@ const int maxLengthY = 25;								 // Max array lengths
 
 COORD curPos;
 POSITION cursor;										 // Board cursor
-CELL board[maxLengthX][maxLengthY];						 // Max container of board data
+CELL board[maxLengthY][maxLengthX];						 // Max container of board data
 DIFFICULTY preset[5] = 									 // Difficulty presets
 {
 	{},
@@ -184,7 +184,8 @@ int columns = preset[Easy].columns;						 // Amount of columns currently used
 int lines = preset[Easy].lines;							 // Amount of lines currently used
 int mineQty = preset[Easy].mines;						 // Amount of mines currently used
 int flagQty;											 // Amount of flags user has
-bool soundOn = true;									 // Turn sound on and of
+bool soundOn = true;									 // Turn sound on and off
+bool autoFlag = false;									 // Turn autoFlag on and off
 
 // Ingame modifiable
 bool usedCheats = false;								 // Store if user has used cheats
@@ -199,13 +200,13 @@ float gameInitTime = 0.0f;								 // Time at which the game starts
 float timeElapsed = 0.0f;								 // Time elapsed since game starts
 short finalTime[2];										 // Time counted since game starts and ends
 short printTime[2];										 // Time converted to minutes and seconds
-short easyBests[3][2] =									 // Best times in easy mode
+short easyBests[3][2]									 // Best times in easy mode
 {
+	{0, 10},
 	{0, 11},
-	{0, 13},
-	{0, 14}
+	{0, 13}
 };
-short normalBests[3][2]								 // Best times in normal mode
+short normalBests[3][2]									 // Best times in normal mode
 {
 	{ 2, 29 },
 	{ 30, 00 },
@@ -302,6 +303,10 @@ void GameFlow()
 		endGame = CheckWinLose();
 		if (!endGame)
 		{
+			if (cheats)
+			{
+				usedCheats = true;
+			}
 			InGameControls();
 			if (clock() % 1000 == 0)
 			{
@@ -427,14 +432,14 @@ void ResetBoard()
 	{
 		for (int x = 0; x < maxLengthX; x++)
 		{
-			board[x][y].mineCount = 0;
-			board[x][y].mine = false;
-			board[x][y].opened = false;
-			board[x][y].flagged = false;
+			board[y][x].mineCount = 0;
+			board[y][x].mine = false;
+			board[y][x].opened = false;
+			board[y][x].flagged = false;
 		}
 	}
 
-	postBoardLoc = { 0, (short)(lines * 2 + 7) };
+	postBoardLoc = { 0, (short)(lines * 2 + 4) };
 	TimePosition = { (short)(7 + 4 * columns), 2 };
 	FlagNumLoc = { (short)(20 + 4 * columns), (short)(2 + 2 * lines) };
 
@@ -455,9 +460,9 @@ void CreateBoard()
 		{
 			random.x = rand() % columns;
 			random.y = rand() % lines;
-		} while (board[random.x][random.y].mine || board[random.x][random.y].opened);
+		} while (board[random.y][random.x].mine || board[random.y][random.x].opened);
 
-		board[random.x][random.y].mine = true;
+		board[random.y][random.x].mine = true;
 	}
 
 	// Burn cell values on board
@@ -465,7 +470,7 @@ void CreateBoard()
 	{
 		for (int x = 0; x < columns; x++)
 		{
-			board[x][y].mineCount = SetCellValues(x, y);
+			board[y][x].mineCount = SetCellValues(x, y);
 		}
 	}
 	DrawBoard();
@@ -482,7 +487,7 @@ int SetCellValues(int x, int y)
 	int minY = y < 1 ? y : y - 1;
 	int maxY = y >= lines - 1 ? y : y + 1;
 
-	if (board[x][y].mine)
+	if (board[y][x].mine)
 	{
 		return 0;
 	}
@@ -497,7 +502,7 @@ int SetCellValues(int x, int y)
 					i++;
 				}
 
-				if (board[i][j].mine)
+				if (board[j][i].mine)
 				{
 					counter++;
 				}
@@ -610,9 +615,9 @@ void InGameControls()
 			DrawBoard();
 		}
 	}
-	else if (key == controls[Select] && !board[cursor.x][cursor.y].flagged)
+	else if (key == controls[Select] && !board[cursor.y][cursor.x].flagged)
 	{
-		if (!board[cursor.x][cursor.y].opened)
+		if (!board[cursor.y][cursor.x].opened)
 		{
 			if (soundOn)
 			{
@@ -620,14 +625,14 @@ void InGameControls()
 			}
 			CheckCell(cursor.x, cursor.y);
 		}
-		else if (board[cursor.x][cursor.y].mineCount > 0)
+		else if (board[cursor.y][cursor.x].mineCount > 0 && autoFlag)
 		{
 			SmartFlag(cursor.x, cursor.y);
 		}
 	}
-	else if (key == controls[Flag] && !board[cursor.x][cursor.y].opened)
+	else if (key == controls[Flag] && !board[cursor.y][cursor.x].opened)
 	{
-		if (board[cursor.x][cursor.y].flagged)
+		if (board[cursor.y][cursor.x].flagged)
 		{
 			if (soundOn)
 			{
@@ -635,7 +640,7 @@ void InGameControls()
 				Beep(2 * soundFreq, 50);
 			}
 			flagQty++;
-			board[cursor.x][cursor.y].flagged = false;
+			board[cursor.y][cursor.x].flagged = false;
 			curPos = FlagNumLoc;
 			SetConsoleCursorPosition(hCon, curPos);
 			cout << flagQty << "   ";
@@ -651,7 +656,7 @@ void InGameControls()
 				Beep(3 * soundFreq, 50);
 			}
 			flagQty--;
-			board[cursor.x][cursor.y].flagged = true;
+			board[cursor.y][cursor.x].flagged = true;
 			curPos = FlagNumLoc;
 			SetConsoleCursorPosition(hCon, curPos);
 			cout << flagQty << "   ";
@@ -673,7 +678,6 @@ void InGameControls()
 			Beep(10 * soundFreq, 100);
 			Beep(10 * soundFreq, 100);
 		}
-		usedCheats = true;
 		cheats = !cheats;
 		DrawBoard();
 	}
@@ -724,41 +728,41 @@ void CheckCell(int x, int y)
 	if (!boardCreated)
 	{
 		boardCreated = true;
-		board[x][y].opened = true;
+		board[y][x].opened = true;
 		CreateBoard();
-		board[x][y].opened = false;
+		board[y][x].opened = false;
 		CheckCell(x, y);
 	}
 	// Exit if cell is opened
-	else if (board[x][y].opened)
+	else if (board[y][x].opened)
 	{
 		return;
 	}
 	// Open mine if selected
-	else if (board[x][y].mine)
+	else if (board[y][x].mine)
 	{
-		board[x][y].opened = true;
+		board[y][x].opened = true;
 
 	}
 	// Stop calling recursion if touching a mine
-	else if (board[x][y].mineCount > 0)
+	else if (board[y][x].mineCount > 0)
 	{
-		board[x][y].opened = true;
-		if (board[x][y].flagged)
+		board[y][x].opened = true;
+		if (board[y][x].flagged)
 		{
-			board[x][y].flagged = false;
+			board[y][x].flagged = false;
 			flagQty++;
 		}
 	}
 	// Check touching cells
 	else
 	{
-		if (board[x][y].flagged)
+		if (board[y][x].flagged)
 		{
-			board[x][y].flagged = false;
+			board[y][x].flagged = false;
 			flagQty++;
 		}
-		board[x][y].opened = true;
+		board[y][x].opened = true;
 
 		for (int j = minY; j <= maxY; j++)
 		{
@@ -823,7 +827,7 @@ bool CheckWinLose()
 	{
 		for (int x = 0; x < columns; x++)
 		{
-			if (board[x][y].mine && board[x][y].opened)
+			if (board[y][x].mine && board[y][x].opened)
 			{
 				SetConsoleTextAttribute(hCon, BlackOnRed);
 				cout << "KA-BOOM! You lose!" << endl << endl;
@@ -840,7 +844,7 @@ bool CheckWinLose()
 				system("pause");
 				return true;
 			}
-			if (board[x][y].opened)
+			if (board[y][x].opened)
 			{
 				openedCounter++;
 			}
@@ -1250,6 +1254,7 @@ void OptionsMenu()
 		SetControls,
 		Audio,
 		BoardKeys,
+		AutoFlag,
 		Colors,
 		Difficulty,
 	};
@@ -1278,6 +1283,14 @@ void OptionsMenu()
 		cout << "Current: ";
 		SetConsoleTextAttribute(hCon, (showKeys ? GreenOnBlack : RedOnBlack));
 		cout << (showKeys ? "ON" : "OFF") << endl;
+		SetConsoleTextAttribute(hCon, WhiteOnBlack);
+		cout << AutoFlag << ": \"Smart flag/open\"			Default: ";
+		SetConsoleTextAttribute(hCon, RedOnBlack);
+		cout << "OFF	";
+		SetConsoleTextAttribute(hCon, WhiteOnBlack);
+		cout << "Current: ";
+		SetConsoleTextAttribute(hCon, (autoFlag ? GreenOnBlack : RedOnBlack));
+		cout << (autoFlag ? "ON" : "OFF") << endl;
 		SetConsoleTextAttribute(hCon, WhiteOnBlack);
 		cout << Colors << ": Change colors" << endl;
 
@@ -1359,6 +1372,10 @@ Frequency:                < )";
 
 		case BoardKeys:
 			showKeys = !showKeys;
+			break;
+
+		case AutoFlag:
+			autoFlag = !autoFlag;
 			break;
 
 		case Difficulty:
@@ -1544,18 +1561,18 @@ void SmartFlag(int x, int y)
 			{
 				continue;
 			}
-			else if (board[i][j].opened)
+			else if (board[j][i].opened)
 			{
 				openedCounter++;
 			}
-			else if (board[i][j].flagged)
+			else if (board[j][i].flagged)
 			{
 				flagCounter++;
 			}
 		}
 	}
 
-	if (openedCounter >= contacts - board[x][y].mineCount)
+	if (openedCounter >= contacts - board[y][x].mineCount)
 	{
 		if (soundOn)
 		{
@@ -1569,9 +1586,9 @@ void SmartFlag(int x, int y)
 				{
 					continue;
 				}
-				else if (!board[i][j].opened && flagQty > 0 && !board[i][j].flagged)
+				else if (!board[j][i].opened && flagQty > 0 && !board[j][i].flagged)
 				{
-					board[i][j].flagged = true;
+					board[j][i].flagged = true;
 					curPos = BoardLocToConLoc(i, j);
 					SetConsoleCursorPosition(hCon, curPos);
 					DrawCellContent(i, j, false);
@@ -1588,7 +1605,7 @@ void SmartFlag(int x, int y)
 		}
 	}
 
-	if (flagCounter == board[x][y].mineCount)
+	if (flagCounter == board[y][x].mineCount)
 	{
 		if (soundOn)
 		{
@@ -1602,7 +1619,7 @@ void SmartFlag(int x, int y)
 				{
 					continue;
 				}
-				else if (!board[i][j].opened && !board[i][j].flagged)
+				else if (!board[j][i].opened && !board[j][i].flagged)
 				{
 					CheckCell(i, j);
 				}
@@ -1618,7 +1635,7 @@ void FlagClear()
 	{
 		for (int x = 0; x < columns; x++)
 		{
-			board[x][y].flagged = false;
+			board[y][x].flagged = false;
 			flagQty = mineQty;
 		}
 	}
@@ -1709,21 +1726,21 @@ void ErasePrevCursor()
 void DrawCellContent(int x, int y, bool erase)
 {
 	// Bomb case
-	if (board[x][y].mine && (board[x][y].opened || cheats))
+	if (board[y][x].mine && (board[y][x].opened || cheats))
 	{
 		SetConsoleTextAttribute(hCon, BlackOnRed);
 		cout << " X ";
 		SetConsoleTextAttribute(hCon, WhiteOnBlack);
 	}
 	// Flag case
-	else if (board[x][y].flagged)
+	else if (board[y][x].flagged)
 	{
 		SetConsoleTextAttribute(hCon, BlackOnYellow);
 		cout << " ! ";
 		SetConsoleTextAttribute(hCon, WhiteOnBlack);
 	}
 	// Empty case
-	else if (!board[x][y].opened)
+	else if (!board[y][x].opened)
 	{
 		SetConsoleTextAttribute(hCon, BlackOnWhite);
 		cout << " ";
@@ -1756,10 +1773,10 @@ void DrawCellContent(int x, int y, bool erase)
 		SetConsoleTextAttribute(hCon, WhiteOnBlack);
 	}
 	// Closed case
-	else if (board[x][y].mineCount > 0)
+	else if (board[y][x].mineCount > 0)
 	{
-		SetConsoleTextAttribute(hCon, numColor[board[x][y].mineCount]);
-		cout << " " << board[x][y].mineCount << " ";
+		SetConsoleTextAttribute(hCon, numColor[board[y][x].mineCount]);
+		cout << " " << board[y][x].mineCount << " ";
 	}
 	// Empty case opened
 	else
@@ -1800,16 +1817,16 @@ void DrawCellContent(int x, int y, bool erase)
 void DrawCursorCases(int x, int y)
 {
 	// Cursor and counter case
-	if (board[x][y].mineCount > 0 && board[x][y].opened)
+	if (board[y][x].mineCount > 0 && board[y][x].opened)
 	{
 		SetConsoleTextAttribute(hCon, BlackOnBlue);
 		cout << ">";
-		SetConsoleTextAttribute(hCon, numColor[board[x][y].mineCount]);
-		cout << board[x][y].mineCount;
+		SetConsoleTextAttribute(hCon, numColor[board[y][x].mineCount]);
+		cout << board[y][x].mineCount;
 		SetConsoleTextAttribute(hCon, BlackOnBlue);
 		cout << "<";
 	}
-	else if (board[x][y].mine && (board[x][y].opened || cheats))
+	else if (board[y][x].mine && (board[y][x].opened || cheats))
 	{
 		SetConsoleTextAttribute(hCon, BlackOnBlue);
 		cout << ">";
@@ -1820,7 +1837,7 @@ void DrawCursorCases(int x, int y)
 
 	}
 	// Cursor and flag case
-	else if (board[x][y].flagged)
+	else if (board[y][x].flagged)
 	{
 		SetConsoleTextAttribute(hCon, BlackOnBlue);
 		cout << ">";
