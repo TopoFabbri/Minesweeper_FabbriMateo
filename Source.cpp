@@ -202,9 +202,9 @@ short finalTime[2];										 // Time counted since game starts and ends
 short printTime[2];										 // Time converted to minutes and seconds
 short easyBests[3][2]									 // Best times in easy mode
 {
-	{0, 10},
-	{0, 11},
-	{0, 13}
+	{ 0, 9 },
+	{ 0, 10 },
+	{ 0, 11 }
 };
 short normalBests[3][2]									 // Best times in normal mode
 {
