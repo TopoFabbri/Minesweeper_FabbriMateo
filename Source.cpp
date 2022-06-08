@@ -208,9 +208,9 @@ short easyBests[3][2]									 // Best times in easy mode
 };
 short normalBests[3][2]									 // Best times in normal mode
 {
-	{ 2, 29 },
-	{ 30, 00 },
-	{ 30, 00 }
+	{ 1, 04 },
+	{ 1, 13 },
+	{ 1, 43 }
 };
 short hardBests[3][2]									 // Best times in hard mode
 {
@@ -907,7 +907,7 @@ bool CheckWinLose()
 
 		case Normal:
 		{
-			if (finalTime[0] < easyBests[0][0] || (finalTime[0] == easyBests[0][0] && finalTime[1] < easyBests[0][1]))
+			if (finalTime[0] < normalBests[0][0] || (finalTime[0] == normalBests[0][0] && finalTime[1] < normalBests[0][1]))
 			{
 				for (int i = 3 - 1; i > 0; i--)
 				{
