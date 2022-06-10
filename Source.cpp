@@ -1299,7 +1299,7 @@ Frequency:                < )";
 				default:
 					break;
 				}
-			} while (ans != 0);
+			} while (ans != '0');
 			break;
 
 		case Difficulty:
