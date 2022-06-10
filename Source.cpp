@@ -244,8 +244,8 @@ void OptionsMenu();										  // Options menu
 void ChangeDimensions();								  // Dimensions menu
 void SmartFlag(int x, int y);							  // Smart auto-flag
 void FlagClear();										  // Clears all flags
-COLORS SelectColor();									  // Choose and return a color
 void ErasePrevCursor();									  // Delete previous cursor
+COLORS SelectColor();									  // Choose and return a color
 COORD BoardLocToConLoc(int x, int y);					  // Translate board coordinates to console coordinates
 void DrawCellContent(int x, int y, bool erase);			  // Prints each cell's data
 void DrawCursorCases(int x, int y);						  // Prints cell with the cursor on
@@ -1061,9 +1061,9 @@ void GameControls()
 				break;
 
 			case '2':
-				cout << "Current: " << controls[Options] << endl
+				cout << "Current: " << controls[Ops] << endl
 					<< "Press new key for 'Options'";
-				controls[Options] = _getch();
+				controls[Ops] = _getch();
 				break;
 
 			case '3':
@@ -1094,6 +1094,7 @@ void OptionsMenu()
 		BoardKeys,
 		AutoFlag,
 		Colors,
+		Records,
 		Difficulty,
 	};
 
@@ -1131,6 +1132,7 @@ void OptionsMenu()
 		cout << (autoFlag ? "ON" : "OFF") << endl;
 		SetConsoleTextAttribute(hCon, WhiteOnBlack);
 		cout << Colors << ": Change colors" << endl;
+		cout << Records << ": View best times" << endl;
 
 		if (endGame)
 		{
@@ -1214,6 +1216,79 @@ Frequency:                < )";
 
 		case AutoFlag:
 			autoFlag = !autoFlag;
+			break;
+
+		case Records:
+			do
+			{
+				system("cls");
+				SetConsoleTextAttribute(hCon, BlackOnWhite);
+				cout << "                                                                         " << endl
+					<< "                              R E C O R D S                              " << endl
+					<< "                                                                         " << endl << endl;
+				SetConsoleTextAttribute(hCon, WhiteOnBlack);
+
+				cout << "0: Back" << endl;
+				cout << "1: Easy				Best: "
+					<< easyBests[0][0] << ":" << easyBests[0][1] << endl
+					<< "2: Normal			Best: "
+					<< normalBests[0][0] << ":" << normalBests[0][1] << endl
+					<< "3: Hard				Best: "
+					<< hardBests[0][0] << ":" << hardBests[0][1] << endl;
+
+				ans = _getch();
+
+				switch (ans)
+				{
+				case '1':
+					system("cls");
+					SetConsoleTextAttribute(hCon, BlackOnWhite);
+					cout << "                                                                         " << endl
+						<< "                         E A S Y   R E C O R D S                         " << endl
+						<< "                                                                         " << endl << endl;
+					SetConsoleTextAttribute(hCon, WhiteOnBlack);
+
+					for (int i = 0; i < 3; i++)
+					{
+						cout << i + 1 << ": " << easyBests[i][0] << ":" << easyBests[i][1] << endl;
+					}
+					system("pause");
+					break;
+
+				case '2':
+					system("cls");
+					SetConsoleTextAttribute(hCon, BlackOnWhite);
+					cout << "                                                                         " << endl
+						<< "                       N O R M A L   R E C O R D S                       " << endl
+						<< "                                                                         " << endl << endl;
+					SetConsoleTextAttribute(hCon, WhiteOnBlack);
+
+					for (int i = 0; i < 3; i++)
+					{
+						cout << i + 1 << ": " << normalBests[i][0] << ":" << normalBests[i][1] << endl;
+					}
+					system("pause");
+					break;
+
+				case '3':
+					system("cls");
+					SetConsoleTextAttribute(hCon, BlackOnWhite);
+					cout << "                                                                         " << endl
+						<< "                         H A R D   R E C O R D S                         " << endl
+						<< "                                                                         " << endl << endl;
+					SetConsoleTextAttribute(hCon, WhiteOnBlack);
+
+					for (int i = 0; i < 3; i++)
+					{
+						cout << i + 1 << ": " << hardBests[i][0] << ":" << hardBests[i][1] << endl;
+					}
+					system("pause");
+					break;
+
+				default:
+					break;
+				}
+			} while (ans != 0);
 			break;
 
 		case Difficulty:
