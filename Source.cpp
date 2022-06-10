@@ -345,7 +345,9 @@ void DrawBoard()
 {
 	char wall[11] = { 201, 205, 203, 187, 186, 204, 206, 185, 200, 202, 188 };					 // Cell Walls variables
 
-	system("cls");
+	curPos = { 0, 0 };
+	SetConsoleCursorPosition(hCon, curPos);
+	//system("cls");
 	cout << "  ";
 	SetConsoleTextAttribute(hCon, BlackOnRed);
 	cout << "MINESWEEPER	MATEO FABBRI" << endl;
@@ -704,29 +706,31 @@ bool CheckWinLose()
 		{
 		case Easy:
 		{
-			if (finalTime[0] < easyBests[0][0] || (finalTime[0] == easyBests[0][0] && finalTime[1] < easyBests[0][1]))
+			if (!usedCheats)
 			{
-				for (int i = 3 - 1; i > 0; i--)
+				if (finalTime[0] < easyBests[0][0] || (finalTime[0] == easyBests[0][0] && finalTime[1] < easyBests[0][1]))
 				{
-					easyBests[i][0] = easyBests[i - 1][0];
-					easyBests[i][1] = easyBests[i - 1][1];
+					for (int i = 3 - 1; i > 0; i--)
+					{
+						easyBests[i][0] = easyBests[i - 1][0];
+						easyBests[i][1] = easyBests[i - 1][1];
+					}
+					easyBests[0][0] = finalTime[0];
+					easyBests[0][1] = finalTime[1];
 				}
-				easyBests[0][0] = finalTime[0];
-				easyBests[0][1] = finalTime[1];
-			}
-			else if (finalTime[0] < easyBests[1][0] || (finalTime[0] == easyBests[1][0] && finalTime[1] < easyBests[1][1]))
-			{
-				easyBests[2][0] = easyBests[1][0];
-				easyBests[2][1] = easyBests[1][1];
+				else if (finalTime[0] < easyBests[1][0] || (finalTime[0] == easyBests[1][0] && finalTime[1] < easyBests[1][1]))
+				{
+					easyBests[2][0] = easyBests[1][0];
+					easyBests[2][1] = easyBests[1][1];
 
-				easyBests[1][0] = finalTime[0];
-				easyBests[1][1] = finalTime[1];
-			}
-			else if (finalTime[0] < easyBests[2][0] || (finalTime[0] == easyBests[2][0] && finalTime[1] < easyBests[2][1]))
-			{
-				easyBests[2][0] = finalTime[0];
-				easyBests[2][1] = finalTime[1];
-
+					easyBests[1][0] = finalTime[0];
+					easyBests[1][1] = finalTime[1];
+				}
+				else if (finalTime[0] < easyBests[2][0] || (finalTime[0] == easyBests[2][0] && finalTime[1] < easyBests[2][1]))
+				{
+					easyBests[2][0] = finalTime[0];
+					easyBests[2][1] = finalTime[1];
+				}
 			}
 
 			cout << "Best easy times: " << endl;
@@ -738,29 +742,32 @@ bool CheckWinLose()
 
 		case Normal:
 		{
-			if (finalTime[0] < normalBests[0][0] || (finalTime[0] == normalBests[0][0] && finalTime[1] < normalBests[0][1]))
+			if (!usedCheats)
 			{
-				for (int i = 3 - 1; i > 0; i--)
+				if (finalTime[0] < normalBests[0][0] || (finalTime[0] == normalBests[0][0] && finalTime[1] < normalBests[0][1]))
 				{
-					normalBests[i][0] = normalBests[i - 1][0];
-					normalBests[i][1] = normalBests[i - 1][1];
+					for (int i = 3 - 1; i > 0; i--)
+					{
+						normalBests[i][0] = normalBests[i - 1][0];
+						normalBests[i][1] = normalBests[i - 1][1];
+					}
+					normalBests[0][0] = finalTime[0];
+					normalBests[0][1] = finalTime[1];
 				}
-				normalBests[0][0] = finalTime[0];
-				normalBests[0][1] = finalTime[1];
-			}
-			else if (finalTime[0] < normalBests[1][0] || (finalTime[0] == normalBests[1][0] && finalTime[1] < normalBests[1][1]))
-			{
-				normalBests[2][0] = normalBests[1][0];
-				normalBests[2][1] = normalBests[1][1];
+				else if (finalTime[0] < normalBests[1][0] || (finalTime[0] == normalBests[1][0] && finalTime[1] < normalBests[1][1]))
+				{
+					normalBests[2][0] = normalBests[1][0];
+					normalBests[2][1] = normalBests[1][1];
 
-				normalBests[1][0] = finalTime[0];
-				normalBests[1][1] = finalTime[1];
-			}
-			else if (finalTime[0] < normalBests[2][0] || (finalTime[0] == normalBests[2][0] && finalTime[1] < normalBests[2][1]))
-			{
-				normalBests[2][0] = finalTime[0];
-				normalBests[2][1] = finalTime[1];
+					normalBests[1][0] = finalTime[0];
+					normalBests[1][1] = finalTime[1];
+				}
+				else if (finalTime[0] < normalBests[2][0] || (finalTime[0] == normalBests[2][0] && finalTime[1] < normalBests[2][1]))
+				{
+					normalBests[2][0] = finalTime[0];
+					normalBests[2][1] = finalTime[1];
 
+				}
 			}
 
 			cout << "Best normal times: " << endl;
@@ -772,29 +779,32 @@ bool CheckWinLose()
 
 		case Hard:
 		{
-			if (finalTime[0] < hardBests[0][0] || (finalTime[0] == hardBests[0][0] && finalTime[1] < hardBests[0][1]))
+			if (!usedCheats)
 			{
-				for (int i = 3 - 1; i > 0; i--)
+				if (finalTime[0] < hardBests[0][0] || (finalTime[0] == hardBests[0][0] && finalTime[1] < hardBests[0][1]))
 				{
-					hardBests[i][0] = hardBests[i - 1][0];
-					hardBests[i][1] = hardBests[i - 1][1];
+					for (int i = 3 - 1; i > 0; i--)
+					{
+						hardBests[i][0] = hardBests[i - 1][0];
+						hardBests[i][1] = hardBests[i - 1][1];
+					}
+					hardBests[0][0] = finalTime[0];
+					hardBests[0][1] = finalTime[1];
 				}
-				hardBests[0][0] = finalTime[0];
-				hardBests[0][1] = finalTime[1];
-			}
-			else if (finalTime[0] < hardBests[1][0] || (finalTime[0] == hardBests[1][0] && finalTime[1] < hardBests[1][1]))
-			{
-				hardBests[2][0] = hardBests[1][0];
-				hardBests[2][1] = hardBests[1][1];
+				else if (finalTime[0] < hardBests[1][0] || (finalTime[0] == hardBests[1][0] && finalTime[1] < hardBests[1][1]))
+				{
+					hardBests[2][0] = hardBests[1][0];
+					hardBests[2][1] = hardBests[1][1];
 
-				hardBests[1][0] = finalTime[0];
-				hardBests[1][1] = finalTime[1];
-			}
-			else if (finalTime[0] < hardBests[2][0] || (finalTime[0] == hardBests[2][0] && finalTime[1] < hardBests[2][1]))
-			{
-				hardBests[2][0] = finalTime[0];
-				hardBests[2][1] = finalTime[1];
+					hardBests[1][0] = finalTime[0];
+					hardBests[1][1] = finalTime[1];
+				}
+				else if (finalTime[0] < hardBests[2][0] || (finalTime[0] == hardBests[2][0] && finalTime[1] < hardBests[2][1]))
+				{
+					hardBests[2][0] = finalTime[0];
+					hardBests[2][1] = finalTime[1];
 
+				}
 			}
 
 			cout << "Best hard times: " << endl;
@@ -2031,7 +2041,5 @@ void GameStateControls(char key)
 		}
 
 		endGame = true;
-		ResetBoard();
-		CreateBoard();
 	}
 }
