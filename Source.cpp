@@ -184,7 +184,7 @@ int columns = preset[Easy].columns;						 // Amount of columns currently used
 int lines = preset[Easy].lines;							 // Amount of lines currently used
 int mineQty = preset[Easy].mines;						 // Amount of mines currently used
 int flagQty;											 // Amount of flags user has
-bool soundOn = true;									 // Turn sound on and off
+bool soundOn = false;									 // Turn sound on and off
 bool autoFlag = false;									 // Turn autoFlag on and off
 
 // Ingame modifiable
@@ -251,6 +251,9 @@ void DrawCellContent(int x, int y, bool erase);			  // Prints each cell's data
 void DrawCursorCases(int x, int y);						  // Prints cell with the cursor on
 void DrawCursor();										  // Prints cursor when moved
 void GetTime();											  // Calculate and print time
+void MovementControls(char key);						  // Execute movement
+void MainMechanicsControls(char key);					  // Execute flag and select
+void GameStateControls(char key);						  // Execute cheat, options and quit
 #pragma endregion
 
 // Default function
@@ -426,6 +429,14 @@ void DrawBoard()
 // Set all cells' values to 0
 void ResetBoard()
 {
+	const int columnWide = 4;
+	const int lineHeight = 2;
+	const int boardStartX = 3;
+	const int boardStartY = 2;
+	const int tabSize = 4;
+	const int afterBoardLines = 2;
+	const int flagTextLength = 12;
+
 	cursor = { 0, 0 };
 	flagQty = mineQty;
 	for (int y = 0; y < maxLengthY; y++)
@@ -439,9 +450,13 @@ void ResetBoard()
 		}
 	}
 
-	postBoardLoc = { 0, (short)(lines * 2 + 4) };
-	TimePosition = { (short)(7 + 4 * columns), 2 };
-	FlagNumLoc = { (short)(20 + 4 * columns), (short)(2 + 2 * lines) };
+	postBoardLoc = { 0, (short)(lines * lineHeight + boardStartY + afterBoardLines) };
+	TimePosition = { (short)(boardStartX + tabSize + columnWide * columns), boardStartY };
+	FlagNumLoc =
+	{
+		(short)(flagTextLength + boardStartX + tabSize + columnWide * columns),
+		(short)(boardStartY + lineHeight * lines)
+	};
 
 	return;
 }
@@ -524,194 +539,9 @@ void InGameControls()
 	if (key >= 65 && key <= 90)
 		key += 32;
 
-	if (key == controls[Up])
-	{
-		ErasePrevCursor();
-		if (soundOn)
-		{
-			Beep(2 * soundFreq, 100);
-		}
-		if (cursor.y > 0)
-		{
-			cursor.y--;
-		}
-		else
-		{
-			cursor.y = lines - 1;
-		}
-		DrawCursor();
-	}
-	else if (key == controls[Down])
-	{
-		ErasePrevCursor();
-		if (soundOn)
-		{
-			Beep(2 * soundFreq, 100);
-		}
-		if (cursor.y < lines - 1)
-		{
-			cursor.y++;
-		}
-		else
-		{
-			cursor.y = 0;
-		}
-		DrawCursor();
-	}
-	else if (key == controls[Left])
-	{
-		ErasePrevCursor();
-		if (soundOn)
-		{
-			Beep(2 * soundFreq, 100);
-		}
-		if (cursor.x > 0)
-		{
-			cursor.x--;
-		}
-		else
-		{
-			cursor.x = columns - 1;
-		}
-		DrawCursor();
-	}
-	else if (key == controls[Right])
-	{
-		ErasePrevCursor();
-		if (soundOn)
-		{
-			Beep(2 * soundFreq, 100);
-		}
-		if (cursor.x < columns - 1)
-		{
-			cursor.x++;
-		}
-		else
-		{
-			cursor.x = 0;
-		}
-		DrawCursor();
-	}
-	else if (key == controls[Back])
-	{
-		if (soundOn)
-		{
-			Beep(1.5 * soundFreq, 100);
-		}
-		system("cls");
-		cout << "Do you wish to go back to menu?\n0: No\n1: Yes";
-		do
-		{
-			key = _getch();
-		} while (key != '0' && key != '1');
-
-		if (key == '1')
-		{
-			endGame = true;
-			Nav = MainMenu;
-		}
-		else
-		{
-			DrawBoard();
-		}
-	}
-	else if (key == controls[Select] && !board[cursor.y][cursor.x].flagged)
-	{
-		if (!board[cursor.y][cursor.x].opened)
-		{
-			if (soundOn)
-			{
-				Beep(3 * soundFreq, 100);
-			}
-			CheckCell(cursor.x, cursor.y);
-		}
-		else if (board[cursor.y][cursor.x].mineCount > 0 && autoFlag)
-		{
-			SmartFlag(cursor.x, cursor.y);
-		}
-	}
-	else if (key == controls[Flag] && !board[cursor.y][cursor.x].opened)
-	{
-		if (board[cursor.y][cursor.x].flagged)
-		{
-			if (soundOn)
-			{
-				Beep(3 * soundFreq, 50);
-				Beep(2 * soundFreq, 50);
-			}
-			flagQty++;
-			board[cursor.y][cursor.x].flagged = false;
-			curPos = FlagNumLoc;
-			SetConsoleCursorPosition(hCon, curPos);
-			cout << flagQty << "   ";
-
-			curPos = postBoardLoc;
-			SetConsoleCursorPosition(hCon, curPos);
-		}
-		else if (flagQty > 0)
-		{
-			if (soundOn)
-			{
-				Beep(2 * soundFreq, 50);
-				Beep(3 * soundFreq, 50);
-			}
-			flagQty--;
-			board[cursor.y][cursor.x].flagged = true;
-			curPos = FlagNumLoc;
-			SetConsoleCursorPosition(hCon, curPos);
-			cout << flagQty << "   ";
-
-			curPos = postBoardLoc;
-			SetConsoleCursorPosition(hCon, curPos);
-		}
-		else
-		{
-			cout << "No flags left!";
-			system("pause");
-		}
-	}
-	else if (key == controls[Cheats])
-	{
-		if (soundOn)
-		{
-			Beep(10 * soundFreq, 100);
-			Beep(10 * soundFreq, 100);
-			Beep(10 * soundFreq, 100);
-		}
-		cheats = !cheats;
-		DrawBoard();
-	}
-	else if (key == controls[Ops])
-	{
-		if (soundOn)
-		{
-			Beep(1.5 * soundFreq, 150);
-		}
-		OptionsMenu();
-	}
-	else if (key == controls[ClearFlags])
-	{
-		if (soundOn)
-		{
-			Beep(5 * soundFreq, 100);
-			Beep(5 * soundFreq, 100);
-		}
-		FlagClear();
-	}
-	else if (key == controls[Restart])
-	{
-		if (soundOn)
-		{
-			Beep(10 * soundFreq, 150);
-			Beep(5 * soundFreq, 150);
-			Beep(2.5 * soundFreq, 150);
-			Beep(5 * soundFreq, 200);
-		}
-
-		endGame = true;
-		ResetBoard();
-		CreateBoard();
-	}
+	MovementControls(key);
+	MainMechanicsControls(key);
+	GameStateControls(key);
 
 	return;
 }
@@ -1082,7 +912,7 @@ void DrawCellFloors(char wall[], int y)
 		}
 		else
 		{
-			cout << "	Flags left: " << flagQty;
+			cout << "    Flags left: " << flagQty;
 		}
 	}
 }
@@ -1210,6 +1040,8 @@ void GameControls()
 			SetConsoleTextAttribute(hCon, YellowOnBlack);
 			cout << "2: 'Options' key:             " << controls[Ops] << endl << endl;
 			SetConsoleTextAttribute(hCon, WhiteOnBlack);
+			cout << "3: 'Reset' key:             " << controls[Restart] << endl << endl;
+			SetConsoleTextAttribute(hCon, WhiteOnBlack);
 			cout << "9: Page 1" << endl << endl;
 			SetConsoleTextAttribute(hCon, RedOnBlack);
 			cout << "                               " << endl;
@@ -1232,6 +1064,12 @@ void GameControls()
 				cout << "Current: " << controls[Options] << endl
 					<< "Press new key for 'Options'";
 				controls[Options] = _getch();
+				break;
+
+			case '3':
+				cout << "Current: " << controls[Restart] << endl
+					<< "Press new key for 'Restart'";
+				controls[Restart] = _getch();
 				break;
 
 			case '9':
@@ -1545,10 +1383,13 @@ void ChangeDimensions()
 // Smart auto-flag
 void SmartFlag(int x, int y)
 {
-	int minX = x < 1 ? x : x - 1;
-	int maxX = x >= columns - 1 ? x : x + 1;
-	int minY = y < 1 ? y : y - 1;
-	int maxY = y >= lines - 1 ? y : y + 1;
+	const int firstNotBorderX = 1;
+	const int cellUnit = 1;
+
+	int minX = x < firstNotBorderX ? x : x - cellUnit;
+	int maxX = x >= columns - cellUnit ? x : x + cellUnit;
+	int minY = y < cellUnit ? y : y - cellUnit;
+	int maxY = y >= lines - cellUnit ? y : y + cellUnit;
 	int openedCounter = 0;
 	int flagCounter = 0;
 	int contacts = (((maxY + 1) - minY) * ((maxX + 1) - minX) - 1);
@@ -1645,6 +1486,8 @@ void FlagClear()
 // Choose and return a color
 COLORS SelectColor()
 {
+	const int colorQty = 15;
+	const int lineItems = 5;
 	int ans;
 	COLORS selected;
 
@@ -1656,22 +1499,22 @@ COLORS SelectColor()
 	SetConsoleTextAttribute(hCon, WhiteOnBlack);
 
 	cout << "Enter one of the following numbers:" << endl;
-	for (int i = 0; i <= 15; i++)
+	for (int i = 0; i <= colorQty; i++)
 	{
 		SetConsoleTextAttribute(hCon, i);
 		cout << " " << i << " ";
 		SetConsoleTextAttribute(hCon, WhiteOnBlack);
-		cout << (i % 5 == 0 ? "\n\n" : "		");
+		cout << (i % lineItems == 0 ? "\n\n" : "		");
 	}
 
 	do
 	{
 		cin >> ans;
-		if (ans < 0 || ans > 15)
+		if (ans < 0 || ans > colorQty)
 		{
 			cout << "Input out of bounds. Try again: ";
 		}
-	} while (ans < 0 || ans > 15);
+	} while (ans < 0 || ans > colorQty);
 
 	return (COLORS)ans;
 }
@@ -1679,42 +1522,52 @@ COLORS SelectColor()
 // Translate Board coordinates to console coordinates
 COORD BoardLocToConLoc(int x, int y)
 {
+	const int boardStartX = 3;
+	const int boardStartY = 3;
+	const int columnWide = 4;
+	const int lineHeight = 2;
+
 	COORD op;
-	op.X = (short)(3 + x * 4);
-	op.Y = (short)(3 + y * 2);
+	op.X = (short)(boardStartX + x * columnWide);
+	op.Y = (short)(boardStartY + y * lineHeight);
 	return op;
 }
 
 // Delete cursor when position changes
 void ErasePrevCursor()
 {
+	const int firstColumn = 0;
+	const int firstLine = 0;
+	const int lastColumn = columns - 1;
+	const int lastLine = lines - 1;
+
 	curPos = BoardLocToConLoc(cursor.x, cursor.y);
 	SetConsoleCursorPosition(hCon, curPos);
 	SetConsoleTextAttribute(hCon, BlackOnWhite);
 	DrawCellContent(cursor.x, cursor.y, true);
 
-	if (cursor.y > 0)
+	if (cursor.y > firstLine)
 	{
 		curPos = BoardLocToConLoc(cursor.x, cursor.y - 1);
 		SetConsoleCursorPosition(hCon, curPos);
 		DrawCellContent(cursor.x, cursor.y - 1, true);
 	}
 
-	if (cursor.x > 0)
+	if (cursor.x > firstColumn)
 	{
 		curPos = BoardLocToConLoc(cursor.x - 1, cursor.y);
 		SetConsoleCursorPosition(hCon, curPos);
 		DrawCellContent(cursor.x - 1, cursor.y, true);
 	}
 
-	if (cursor.x < columns - 1)
+	if (cursor.x < lastColumn)
 	{
 		curPos = BoardLocToConLoc(cursor.x + 1, cursor.y);
 		SetConsoleCursorPosition(hCon, curPos);
 		DrawCellContent(cursor.x + 1, cursor.y, true);
 	}
 
-	if (cursor.y < lines - 1)
+	if (cursor.y < lastLine)
 	{
 		curPos = BoardLocToConLoc(cursor.x, cursor.y + 1);
 		SetConsoleCursorPosition(hCon, curPos);
@@ -1894,4 +1747,208 @@ void DrawCursor()
 
 	curPos = postBoardLoc;
 	SetConsoleCursorPosition(hCon, curPos);
+}
+
+// Execute movement
+void MovementControls(char key)
+{
+	if (key == controls[Up])
+	{
+		ErasePrevCursor();
+		if (soundOn)
+		{
+			Beep(2 * soundFreq, 100);
+		}
+		if (cursor.y > 0)
+		{
+			cursor.y--;
+		}
+		else
+		{
+			cursor.y = lines - 1;
+		}
+		DrawCursor();
+	}
+	else if (key == controls[Down])
+	{
+		ErasePrevCursor();
+		if (soundOn)
+		{
+			Beep(2 * soundFreq, 100);
+		}
+		if (cursor.y < lines - 1)
+		{
+			cursor.y++;
+		}
+		else
+		{
+			cursor.y = 0;
+		}
+		DrawCursor();
+	}
+	else if (key == controls[Left])
+	{
+		ErasePrevCursor();
+		if (soundOn)
+		{
+			Beep(2 * soundFreq, 100);
+		}
+		if (cursor.x > 0)
+		{
+			cursor.x--;
+		}
+		else
+		{
+			cursor.x = columns - 1;
+		}
+		DrawCursor();
+	}
+	else if (key == controls[Right])
+	{
+		ErasePrevCursor();
+		if (soundOn)
+		{
+			Beep(2 * soundFreq, 100);
+		}
+		if (cursor.x < columns - 1)
+		{
+			cursor.x++;
+		}
+		else
+		{
+			cursor.x = 0;
+		}
+		DrawCursor();
+	}
+}
+
+// Execute game mechanics
+void MainMechanicsControls(char key)
+{
+	if (key == controls[Select] && !board[cursor.y][cursor.x].flagged)
+	{
+		if (!board[cursor.y][cursor.x].opened)
+		{
+			if (soundOn)
+			{
+				Beep(3 * soundFreq, 100);
+			}
+			CheckCell(cursor.x, cursor.y);
+		}
+		else if (board[cursor.y][cursor.x].mineCount > 0 && autoFlag)
+		{
+			SmartFlag(cursor.x, cursor.y);
+		}
+	}
+	else if (key == controls[Flag] && !board[cursor.y][cursor.x].opened)
+	{
+		if (board[cursor.y][cursor.x].flagged)
+		{
+			if (soundOn)
+			{
+				Beep(3 * soundFreq, 50);
+				Beep(2 * soundFreq, 50);
+			}
+			flagQty++;
+			board[cursor.y][cursor.x].flagged = false;
+			curPos = FlagNumLoc;
+			SetConsoleCursorPosition(hCon, curPos);
+			cout << flagQty << "   ";
+
+			curPos = postBoardLoc;
+			SetConsoleCursorPosition(hCon, curPos);
+		}
+		else if (flagQty > 0)
+		{
+			if (soundOn)
+			{
+				Beep(2 * soundFreq, 50);
+				Beep(3 * soundFreq, 50);
+			}
+			flagQty--;
+			board[cursor.y][cursor.x].flagged = true;
+			curPos = FlagNumLoc;
+			SetConsoleCursorPosition(hCon, curPos);
+			cout << flagQty << "   ";
+
+			curPos = postBoardLoc;
+			SetConsoleCursorPosition(hCon, curPos);
+		}
+		else
+		{
+			cout << "No flags left!";
+			system("pause");
+		}
+	}
+	else if (key == controls[ClearFlags])
+	{
+		if (soundOn)
+		{
+			Beep(5 * soundFreq, 100);
+			Beep(5 * soundFreq, 100);
+		}
+		FlagClear();
+	}
+}
+
+// Execute playing state controls
+void GameStateControls(char key)
+{
+	if (key == controls[Back])
+	{
+		if (soundOn)
+		{
+			Beep(1.5 * soundFreq, 100);
+		}
+		system("cls");
+		cout << "Do you wish to go back to menu?\n0: No\n1: Yes";
+		do
+		{
+			key = _getch();
+		} while (key != '0' && key != '1');
+
+		if (key == '1')
+		{
+			endGame = true;
+			Nav = MainMenu;
+		}
+		else
+		{
+			DrawBoard();
+		}
+	}
+	else if (key == controls[Cheats])
+	{
+		if (soundOn)
+		{
+			Beep(10 * soundFreq, 100);
+			Beep(10 * soundFreq, 100);
+			Beep(10 * soundFreq, 100);
+		}
+		cheats = !cheats;
+		DrawBoard();
+	}
+	else if (key == controls[Ops])
+	{
+		if (soundOn)
+		{
+			Beep(1.5 * soundFreq, 150);
+		}
+		OptionsMenu();
+	}
+	else if (key == controls[Restart])
+	{
+		if (soundOn)
+		{
+			Beep(10 * soundFreq, 150);
+			Beep(5 * soundFreq, 150);
+			Beep(2.5 * soundFreq, 150);
+			Beep(5 * soundFreq, 200);
+		}
+
+		endGame = true;
+		ResetBoard();
+		CreateBoard();
+	}
+
 }
