@@ -186,6 +186,7 @@ int mineQty = preset[Easy].mines;						 // Amount of mines currently used
 int flagQty;											 // Amount of flags user has
 bool soundOn = false;									 // Turn sound on and off
 bool autoFlag = false;									 // Turn autoFlag on and off
+bool negFlags = true;									 // Can user keep setting flags
 
 // Ingame modifiable
 bool usedCheats = false;								 // Store if user has used cheats
@@ -1930,10 +1931,14 @@ void MainMechanicsControls(char key)
 			SetConsoleCursorPosition(hCon, curPos);
 			cout << flagQty << "   ";
 
+			curPos = BoardLocToConLoc(cursor.x, cursor.y);
+			SetConsoleCursorPosition(hCon, curPos);
+			DrawCursorCases(cursor.x, cursor.y);
+
 			curPos = postBoardLoc;
 			SetConsoleCursorPosition(hCon, curPos);
 		}
-		else if (flagQty > 0)
+		else if (flagQty > 0 || negFlags)
 		{
 			if (soundOn)
 			{
@@ -1945,6 +1950,10 @@ void MainMechanicsControls(char key)
 			curPos = FlagNumLoc;
 			SetConsoleCursorPosition(hCon, curPos);
 			cout << flagQty << "   ";
+
+			curPos = BoardLocToConLoc(cursor.x, cursor.y);
+			SetConsoleCursorPosition(hCon, curPos);
+			DrawCursorCases(cursor.x, cursor.y);
 
 			curPos = postBoardLoc;
 			SetConsoleCursorPosition(hCon, curPos);
@@ -2025,5 +2034,4 @@ void GameStateControls(char key)
 		ResetBoard();
 		CreateBoard();
 	}
-
 }
