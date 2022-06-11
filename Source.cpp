@@ -60,6 +60,7 @@ enum COLORS
 	OrangeOnBlack = 12,
 	WhiteOnBlack = 15,
 	BlackOnBlue = 16,
+	BlackOnGreen = 32,
 	BlackOnRed = 64,
 	BlackOnYellow = 96,
 	BlackOnWhite = 240,
@@ -91,6 +92,7 @@ enum MODES
 	Quit,
 	Game,
 	Options,
+	Tutorial,
 	MainMenu,
 };
 
@@ -215,9 +217,9 @@ short normalBests[3][2]									 // Best times in normal mode
 };
 short hardBests[3][2]									 // Best times in hard mode
 {
+	{ 4, 54 },
 	{ 5, 21 },
-	{ 9, 06 },
-	{ 14, 8 }
+	{ 9, 06 }
 };
 
 // Game controls
@@ -227,9 +229,12 @@ char controls[20]{ '0', 'w', 's', 'a', 'd', '1', '2', '3', '4', '5', '6' };
 #pragma endregion
 
 #pragma region FUNCTION DECLARING
+void SceneManager();									  // Switch between scenes
+void RunProgram();										  // Execute the game
+void Defaults();										  // Set console defaults
 void DrawBoard();										  // Print the whole board
 void ResetBoard();										  // Prepare the board for a new game
-void GameFlow();										  // Main game controller
+void RunGame();											  // Main game controller
 void CreateBoard();										  // Create a random mine pattern
 int SetCellValues(int x, int y);						  // Set the board's cell values
 void CheckCell(int x, int y);							  // Open cells
@@ -255,15 +260,38 @@ void GetTime();											  // Calculate and print time
 void MovementControls(char key);						  // Execute movement
 void MainMechanicsControls(char key);					  // Execute flag and select
 void GameStateControls(char key);						  // Execute cheat, options and quit
+void RunTutorial();										  // Execute game tutorial
+void PrintOnMap(string text);							  // Prints text on board
+void MovementTutorial();								  // Start movement tutorial
+void TutorialBoard();									  // Create a specific tutorial board
+void OpenTutorial();									  // Start the selecting tutorial
 #pragma endregion
 
 // Default function
 void main()
 {
-	srand(time(nullptr));
+	RunProgram();
+}
 
+// Execute the game
+void RunProgram()
+{
+	Defaults();
+	SceneManager();
+}
+
+// Set console defaults
+void Defaults()
+{
 	ShowWindow(GetConsoleWindow(), SW_MAXIMIZE);
+	SetConsoleTitle((L"Minesweeper - Fabbri Mateo"));
+	system("color 07");
+	srand(time(nullptr));
+}
 
+// Main scene selector
+void SceneManager()
+{
 	do
 	{
 		switch (Nav)
@@ -273,11 +301,16 @@ void main()
 			break;
 
 		case Game:
-			GameFlow();
+			RunGame();
 			break;
 
 		case Options:
 			OptionsMenu();
+			break;
+
+		case Tutorial:
+			RunTutorial();
+			Nav = MainMenu;
 			break;
 
 		case Quit:
@@ -287,12 +320,234 @@ void main()
 			break;
 		}
 	} while (Nav != Quit);
+}
 
-	return;
+// Prints given text on board
+void PrintOnMap(string text)
+{
+	short startPopupPosY = 8;
+	const short startPopupPosX = 3;
+	const short contiguos = 1;
+	const int lineLength = 29;
+	const short textStart = 4;
+	const short textLength = 28;
+	const int lineQty = 4;
+
+	char wall[11] = { 201, 205, 203, 187, 186, 204, 206, 185, 200, 202, 188 };					 // Cell Walls 
+
+	curPos = { startPopupPosX, startPopupPosY };
+	SetConsoleCursorPosition(hCon, curPos);
+
+	SetConsoleTextAttribute(hCon, YellowOnBlack);
+	cout << wall[upLeftC];
+	for (int i = 0; i < lineLength; i++)
+	{
+		cout << wall[hor];
+	}
+	cout << wall[upRightC];
+
+	int finishLine[3] = { -1, -1, -1 };
+
+	char line[lineQty][lineLength];
+
+	for (int j = 0; j < lineQty; j++)
+	{
+		for (int i = 0; i < lineLength; i++)
+		{
+			line[j][i] = ' ';
+		}
+	}
+
+	for (int i = lineLength; i >= 0; i--)
+	{
+		if (i <= text.length())
+		{
+			if (text[i] == ' ')
+			{
+				finishLine[0] = i;
+				break;
+			}
+		}
+	}
+
+	for (int i = lineLength + finishLine[0] - 1; i >= finishLine[0]; i--)
+	{
+		if (i <= text.length())
+		{
+			if (text[i] == ' ')
+			{
+				finishLine[1] = i;
+				break;
+			}
+		}
+	}
+
+	for (int i = lineLength + finishLine[1] - 1; i >= finishLine[1]; i--)
+	{
+		if (i <= text.length())
+		{
+			if (text[i] == ' ')
+			{
+				finishLine[2] = i;
+				break;
+			}
+		}
+	}
+
+	for (int i = 0; i < text.length(); i++)
+	{
+		if (i > finishLine[2] && text.length() > finishLine[1] + lineLength)
+		{
+			line[3][i - finishLine[2] - 1] = text[i];
+		}
+		else if (i > finishLine[1] && text.length() > finishLine[0] + lineLength)
+		{
+			line[2][i - finishLine[1] - 1] = text[i];
+		}
+		else if (i > finishLine[0] && text.length() > lineLength)
+		{
+			line[1][i - finishLine[0] - 1] = text[i];
+		}
+		else
+		{
+			line[0][i] = text[i];
+		}
+	}
+
+	for (int i = 0; i < lineQty; i++)
+	{
+		curPos = { startPopupPosX, (short)(startPopupPosY + i + contiguos) };
+		SetConsoleCursorPosition(hCon, curPos);
+		cout << wall[ver];
+		SetConsoleTextAttribute(hCon, WhiteOnBlack);
+		for (int pos = 0; pos < lineLength; pos++)
+		{
+			cout << line[i][pos];
+		}
+		SetConsoleTextAttribute(hCon, YellowOnBlack);
+		cout << wall[ver];
+	}
+
+	curPos = { startPopupPosX, (short)(startPopupPosY + lineQty + contiguos) };
+	SetConsoleCursorPosition(hCon, curPos);
+
+	cout << wall[lowLeftC];
+	for (int i = 0; i < lineLength; i++)
+	{
+		cout << wall[hor];
+	}
+	cout << wall[lowRightC];
+
+	SetConsoleTextAttribute(hCon, WhiteOnBlack);
+	curPos = postBoardLoc;
+	SetConsoleCursorPosition(hCon, curPos);
+	system("pause");
+
+	DrawBoard();
+}
+
+// Create a specific tutorial board
+void TutorialBoard()
+{
+	board[0][0].mine = true;
+	board[0][1].mine = true;
+
+	for (int y = 0; y < lines; y++)
+	{
+		for (int x = 0; x < columns; x++)
+		{
+			board[y][x].mineCount = SetCellValues(x, y);
+		}
+	}
+}
+
+// Execute tutorial
+void RunTutorial()
+{
+	mineQty = 2;
+	difficulty = Easy;
+	ResetBoard();
+	TutorialBoard();
+
+	system("cls");
+	DrawBoard();
+	PrintOnMap("Let's start with movement.");
+	MovementTutorial();
+	PrintOnMap("Good, now let's try opening a cell. Opening a cell will show you it's content.");
+	OpenTutorial();
+}
+
+// Start select tutorial
+void OpenTutorial()
+{
+	char in;
+
+	SetConsoleTextAttribute(hCon, BlackOnYellow);
+	cout << "Move to the displayed position" << endl;
+
+	do
+	{
+		SetConsoleCursorPosition(hCon, BoardLocToConLoc(3, 0));
+		SetConsoleTextAttribute(hCon, BlackOnGreen);
+
+		cout << " O ";
+
+		in = _getch();
+		MovementControls(in);
+	} while (cursor.x != 3 || cursor.y != 0);
+
+	SetConsoleCursorPosition(hCon, postBoardLoc);
+	SetConsoleTextAttribute(hCon, BlackOnYellow);
+	cout << "Press " << controls[Select] << " to open cell";
+	SetConsoleTextAttribute(hCon, WhiteOnBlack);
+	cout << "           " << endl;
+
+	SetConsoleTextAttribute(hCon, WhiteOnBlack);
+	do
+	{
+		in = _getch();
+	} while (in != controls[Select]);
+
+	MainMechanicsControls(in);
+	SetConsoleCursorPosition(hCon, postBoardLoc);
+	PrintOnMap("Your action resolved in opening many cells.");
+	PrintOnMap("This is because when you open a cell that isn't touching any mines, you know all touching cells aren't mines.");
+	PrintOnMap("This functionality will repeat until it encounters with a number. Then, you are on your own.");
+}
+
+// Start movement tutorial
+void MovementTutorial()
+{
+	const short middleLine = 3;
+	const short contiguos = 1;
+	const short textStart = 0;
+
+	char in;
+
+	PrintOnMap("Try moving around.");
+
+	SetConsoleCursorPosition(hCon, curPos);
+	cout << "                               ";
+
+	for (int i = 0; i < 4; i++)
+	{
+		SetConsoleCursorPosition(hCon, curPos);
+		SetConsoleTextAttribute(hCon, BlackOnYellow);
+		cout << "Use " << controls[Up] << controls[Left] << controls[Down] << controls[Right]
+			<< " to move.";
+		do
+		{
+			in = _getch();
+		} while (in != controls[Up] && in != controls[Left] && in != controls[Down] && in != controls[Right]);
+
+		ErasePrevCursor();
+		MovementControls(in);
+		DrawCursor();
+	}
 }
 
 // Main controller for the gameplay
-void GameFlow()
+void RunGame()
 {
 	boardCreated = false;
 	endGame = false;
@@ -644,7 +899,7 @@ void Menu()
 	{
 		ans = _getch();
 		ans -= 48;
-	} while (ans > 2 || ans < 0);
+	} while (ans > 3 || ans < 0);
 
 	Nav = (MODES)ans;
 
