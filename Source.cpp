@@ -525,6 +525,7 @@ void SmartFlagTutorial()
 		SetConsoleCursorPosition(hCon, BoardLocToConLoc(2, 1));
 		SetConsoleTextAttribute(hCon, BlackOnGreen);
 		cout << " 1 ";
+		SetConsoleCursorPosition(hCon, postBoardLoc);
 
 		in = _getch();
 		MovementControls(in);
@@ -559,6 +560,7 @@ void OpenTutorial()
 		SetConsoleTextAttribute(hCon, BlackOnGreen);
 
 		cout << " O ";
+		SetConsoleCursorPosition(hCon, postBoardLoc);
 
 		in = _getch();
 		MovementControls(in);
