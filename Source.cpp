@@ -62,6 +62,8 @@ enum COLORS
 	BlackOnBlue = 16,
 	BlackOnGreen = 32,
 	BlackOnRed = 64,
+	BlackOnPurple = 80,
+	WhiteOnPurple = 87,
 	BlackOnYellow = 96,
 	BlackOnWhite = 240,
 	BlueOnWhite = 241,
@@ -161,9 +163,9 @@ COLORS numColor[8] = 									 // Mine number colors
 };
 
 // Windows cursor locations
-COORD postBoardLoc;
-COORD TimePosition;
-COORD FlagNumLoc;
+COORD postBoardLoc;										 // Recurrent location below the board
+COORD TimePosition;										 // Time print location
+COORD FlagNumLoc;										 // Show flags print location
 
 // Max dimension variables
 const int maxLengthX = 52;								 // Max array lengths
@@ -265,6 +267,7 @@ void PrintOnMap(string text);							  // Prints text on board
 void MovementTutorial();								  // Start movement tutorial
 void TutorialBoard();									  // Create a specific tutorial board
 void OpenTutorial();									  // Start the selecting tutorial
+void SmartFlagTutorial();								  // Start the smartflag tutorial
 #pragma endregion
 
 // Default function
@@ -338,7 +341,7 @@ void PrintOnMap(string text)
 	curPos = { startPopupPosX, startPopupPosY };
 	SetConsoleCursorPosition(hCon, curPos);
 
-	SetConsoleTextAttribute(hCon, YellowOnBlack);
+	SetConsoleTextAttribute(hCon, WhiteOnPurple);
 	cout << wall[upLeftC];
 	for (int i = 0; i < lineLength; i++)
 	{
@@ -419,12 +422,12 @@ void PrintOnMap(string text)
 		curPos = { startPopupPosX, (short)(startPopupPosY + i + contiguos) };
 		SetConsoleCursorPosition(hCon, curPos);
 		cout << wall[ver];
-		SetConsoleTextAttribute(hCon, WhiteOnBlack);
+		SetConsoleTextAttribute(hCon, BlackOnPurple);
 		for (int pos = 0; pos < lineLength; pos++)
 		{
 			cout << line[i][pos];
 		}
-		SetConsoleTextAttribute(hCon, YellowOnBlack);
+		SetConsoleTextAttribute(hCon, WhiteOnPurple);
 		cout << wall[ver];
 	}
 
@@ -449,6 +452,7 @@ void PrintOnMap(string text)
 // Create a specific tutorial board
 void TutorialBoard()
 {
+	ResetBoard();
 	board[0][0].mine = true;
 	board[0][1].mine = true;
 
@@ -459,14 +463,15 @@ void TutorialBoard()
 			board[y][x].mineCount = SetCellValues(x, y);
 		}
 	}
+	boardCreated = true;
 }
 
 // Execute tutorial
 void RunTutorial()
 {
+	char ans;
 	mineQty = 2;
 	difficulty = Easy;
-	ResetBoard();
 	TutorialBoard();
 
 	system("cls");
@@ -475,6 +480,69 @@ void RunTutorial()
 	MovementTutorial();
 	PrintOnMap("Good, now let's try opening a cell. Opening a cell will show you it's content.");
 	OpenTutorial();
+	PrintOnMap("Nice, this won't let you open that cell.");
+	PrintOnMap("To win you must open all cells that dont have a mine which technically you did it from the start.");
+
+	SetConsoleCursorPosition(hCon, postBoardLoc);
+	SetConsoleTextAttribute(hCon, BlackOnYellow);
+	cout << "Do you wish to exit the tutorial? (0/1)";
+	SetConsoleTextAttribute(hCon, WhiteOnBlack);
+	cout << "           " << endl;
+
+	do
+	{
+		ans = _getch();
+	} while (ans != '0' && ans != '1');
+
+	if (ans == '1')
+		return;
+
+	SmartFlagTutorial();
+	mineQty = preset[Easy].mines;
+
+	PrintOnMap("That is all! You know everything you must know. Enjoy!");
+}
+
+// Start the smart flag tutorial
+void SmartFlagTutorial()
+{
+	char in;
+
+	FlagClear();
+	autoFlag = true;
+	PrintOnMap("In this case we have a cell touching one mine that has everything opened except one cell.");
+	PrintOnMap("This means that cell is a mine.");
+	PrintOnMap("Smart flag function will automatically flag it when you press select on that cell. Let's try.");
+
+	SetConsoleCursorPosition(hCon, postBoardLoc);
+	SetConsoleTextAttribute(hCon, BlackOnYellow);
+	cout << "Press " << controls[Select] << " on the marked cell";
+	SetConsoleTextAttribute(hCon, WhiteOnBlack);
+	cout << "           " << endl;
+
+	do
+	{
+		SetConsoleCursorPosition(hCon, BoardLocToConLoc(2, 1));
+		SetConsoleTextAttribute(hCon, BlackOnGreen);
+		cout << " 1 ";
+
+		in = _getch();
+		MovementControls(in);
+	} while (cursor.x != 2 || cursor.y != 1);
+
+	PrintOnMap("Right. Now press select button on this cell.");
+
+	do
+	{
+		in = _getch();
+	} while (in != controls[Select]);
+	MainMechanicsControls(in);
+
+	PrintOnMap("Great, now as you can see, the cell with the bomb has been marked.");
+	PrintOnMap("The same can be done in the opposite case.");
+	PrintOnMap("If a cell which marks 1 is touching a flag, you can press it to open all touching cells.");
+
+	autoFlag = false;
 }
 
 // Start select tutorial
@@ -513,6 +581,40 @@ void OpenTutorial()
 	PrintOnMap("Your action resolved in opening many cells.");
 	PrintOnMap("This is because when you open a cell that isn't touching any mines, you know all touching cells aren't mines.");
 	PrintOnMap("This functionality will repeat until it encounters with a number. Then, you are on your own.");
+
+	SetConsoleCursorPosition(hCon, postBoardLoc);
+	SetConsoleTextAttribute(hCon, BlackOnYellow);
+	cout << "Try opening one of the cells left";
+	SetConsoleTextAttribute(hCon, WhiteOnBlack);
+	cout << "           " << endl;
+
+	bool inPosition;
+	do
+	{
+		in = _getch();
+		MovementControls(in);
+		MainMechanicsControls(in);
+		inPosition = ((cursor.x == 0 && cursor.y == 0) || (cursor.x == 1 && cursor.y == 0));
+	} while (!inPosition || in != controls[Select]);
+	DrawBoard();
+	PrintOnMap("The cell you opened was a bomb, this means you lose, but we'll overlook it.");
+	PrintOnMap("Now you know that this cell is a bomb. You won't want to open it so you can tag it as bomb.");
+	PrintOnMap("To do this you can mark a cell with a flag. Let's try it");
+
+	board[cursor.y][cursor.x].opened = false;
+	DrawBoard();
+
+	SetConsoleCursorPosition(hCon, postBoardLoc);
+	SetConsoleTextAttribute(hCon, BlackOnYellow);
+	cout << "Press " << controls[Flag] << " to mark current cell";
+	SetConsoleTextAttribute(hCon, WhiteOnBlack);
+	cout << "           " << endl;
+
+	do
+	{
+		in = _getch();
+	} while (in != controls[Flag]);
+	MainMechanicsControls(in);
 }
 
 // Start movement tutorial
@@ -681,7 +783,14 @@ void DrawBoard()
 
 	GetTime();
 
-	return;
+	SetConsoleCursorPosition(hCon, postBoardLoc);
+
+	// Clean below board
+	cout << "                                                                                " << endl
+		<< "                                                                                "
+		<< "                                                                                "
+		<< "                                                                                "
+		<< "                                                                                ";
 }
 
 // Set all cells' values to 0
@@ -893,7 +1002,8 @@ void Menu()
 
 	cout << "0: Exit application" << endl
 		<< "1: Play" << endl
-		<< "2: Options" << endl;
+		<< "2: Options" << endl
+		<< "3: Tutorial" << endl;
 
 	do
 	{
@@ -1359,6 +1469,7 @@ void OptionsMenu()
 		Audio,
 		BoardKeys,
 		AutoFlag,
+		NegativeFlags,
 		Colors,
 		Records,
 		Difficulty,
@@ -1397,6 +1508,14 @@ void OptionsMenu()
 		SetConsoleTextAttribute(hCon, (autoFlag ? GreenOnBlack : RedOnBlack));
 		cout << (autoFlag ? "ON" : "OFF") << endl;
 		SetConsoleTextAttribute(hCon, WhiteOnBlack);
+		cout << NegativeFlags << ": Unlimited flags			Default: ";
+		SetConsoleTextAttribute(hCon, GreenOnBlack);
+		cout << "ON	";
+		SetConsoleTextAttribute(hCon, WhiteOnBlack);
+		cout << "Current: ";
+		SetConsoleTextAttribute(hCon, (negFlags ? GreenOnBlack : RedOnBlack));
+		cout << (negFlags ? "ON" : "OFF") << endl;
+		SetConsoleTextAttribute(hCon, WhiteOnBlack);
 		cout << Colors << ": Change colors" << endl;
 		cout << Records << ": View best times" << endl;
 
@@ -1412,6 +1531,7 @@ void OptionsMenu()
 		{
 		case EnterGame:
 			Nav = Game;
+			system("cls");
 			DrawBoard();
 			return;
 			break;
@@ -1482,6 +1602,10 @@ Frequency:                < )";
 
 		case AutoFlag:
 			autoFlag = !autoFlag;
+			break;
+
+		case NegativeFlags:
+			negFlags = !negFlags;
 			break;
 
 		case Records:
