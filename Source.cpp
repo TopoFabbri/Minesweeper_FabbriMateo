@@ -7,6 +7,7 @@ using namespace std;
 
 // ANALISIS_TM_TP6_FabbriMateo
 
+//GitKraken
 // CONDITIONS:
 /*
 	Condiciones mínimas:
