@@ -87,6 +87,7 @@ enum KEYS
 	ClearFlags,
 	Ops,
 	Restart,
+	Time,
 };
 
 enum MODES
@@ -194,13 +195,14 @@ bool negFlags = true;									 // Can user keep setting flags
 
 // Ingame modifiable
 bool usedCheats = false;								 // Store if user has used cheats
-bool cheats = false;									 // Are cheats activated
+bool cheats = false;									 // Are cheats activated?
 bool showKeys = true;									 // Show input to move to each cell
 bool boardCreated = false;								 // Is the board created?
 bool endGame = true;									 // Switch game state ingame/ended
 int soundFreq = 100;									 // Sound frequency multiplier
 
 // Time variables
+bool shouldPrintTime = true;							 // should print on-screen time
 float gameInitTime = 0.0f;								 // Time at which the game starts
 float timeElapsed = 0.0f;								 // Time elapsed since game starts
 short finalTime[2];										 // Time counted since game starts and ends
@@ -225,8 +227,7 @@ short hardBests[3][2]									 // Best times in hard mode
 };
 
 // Game controls
-const char defControls[20]{ '0', 'w', 's', 'a', 'd', '1', '2', '3', '4', '5', '6' };
-char controls[20]{ '0', 'w', 's', 'a', 'd', '1', '2', '3', '4', '5', '6' };
+char controls[20]{ '0', 'w', 's', 'a', 'd', '1', '2', '3', '4', '5', '6', '7' };
 
 #pragma endregion
 
@@ -290,6 +291,9 @@ void Defaults()
 	SetConsoleTitle((L"Minesweeper - Fabbri Mateo"));
 	system("color 07");
 	srand(time(nullptr));
+	//setlocale(LC_ALL, "spanish");
+	//SetConsoleCP(1252);
+	//SetConsoleOutputCP(1252); // Input, Output en español.
 }
 
 // Main scene selector
@@ -504,6 +508,10 @@ this tutorial.
 	do
 	{
 		ans = _getch();
+		if (ans != '0' && ans != '1')
+		{
+			PrintOnMap("You can't do that now.");
+		}
 	} while (ans != '0' && ans != '1');
 
 	if (ans == '1')
@@ -541,6 +549,10 @@ void SmartFlagTutorial()
 
 		in = _getch();
 		MovementControls(in);
+		if (in != controls[Up] && in != controls[Down] && in != controls[Left] && in != controls[Right])
+		{
+			PrintOnMap("You can't do that now.");
+		}
 	} while (cursor.x != 2 || cursor.y != 1);
 
 	PrintOnMap("Right. Now press select button on this cell.");
@@ -548,6 +560,10 @@ void SmartFlagTutorial()
 	do
 	{
 		in = _getch();
+		if (in != controls[Select])
+		{
+			PrintOnMap("You can't do that now.");
+		}
 	} while (in != controls[Select]);
 	MainMechanicsControls(in);
 
@@ -576,6 +592,10 @@ void OpenTutorial()
 
 		in = _getch();
 		MovementControls(in);
+		if (in != controls[Up] && in != controls[Down] && in != controls[Left] && in != controls[Right])
+		{
+			PrintOnMap("You can't do that now.");
+		}
 	} while (cursor.x != 3 || cursor.y != 0);
 
 	SetConsoleCursorPosition(hCon, postBoardLoc);
@@ -588,6 +608,10 @@ void OpenTutorial()
 	do
 	{
 		in = _getch();
+		if (in != controls[Select])
+		{
+			PrintOnMap("You can't do that now.");
+		}
 	} while (in != controls[Select]);
 
 	MainMechanicsControls(in);
@@ -607,9 +631,24 @@ void OpenTutorial()
 	{
 		in = _getch();
 		MovementControls(in);
-		MainMechanicsControls(in);
 		inPosition = ((cursor.x == 0 && cursor.y == 0) || (cursor.x == 1 && cursor.y == 0));
-	} while (!inPosition || in != controls[Select]);
+		if (in != controls[Up] && in != controls[Down] && in != controls[Left] && in != controls[Right])
+		{
+			PrintOnMap("You can't do that now.");
+		}
+
+	} while (!inPosition);
+
+	do
+	{
+		in = _getch();
+		MainMechanicsControls(in);
+		if (in != controls[Select])
+		{
+			PrintOnMap("You can't do that now.");
+		}
+
+	} while (in != controls[Select]);
 	DrawBoard();
 	PrintOnMap("The cell you opened was a bomb, this means you lose, but we'll overlook it.");
 	PrintOnMap("Now you know that this cell is a bomb. You won't want to open it so you can tag it as bomb.");
@@ -627,6 +666,11 @@ void OpenTutorial()
 	do
 	{
 		in = _getch();
+		if (in != controls[Flag])
+		{
+			PrintOnMap("You can't do that now.");
+		}
+
 	} while (in != controls[Flag]);
 	MainMechanicsControls(in);
 }
@@ -634,6 +678,7 @@ void OpenTutorial()
 // Start movement tutorial
 void MovementTutorial()
 {
+	const int movementQty = 4;
 	const short middleLine = 3;
 	const short contiguos = 1;
 	const short textStart = 0;
@@ -645,7 +690,7 @@ void MovementTutorial()
 	SetConsoleCursorPosition(hCon, curPos);
 	cout << "                               ";
 
-	for (int i = 0; i < 4; i++)
+	for (int i = 0; i < movementQty; i++)
 	{
 		SetConsoleCursorPosition(hCon, curPos);
 		SetConsoleTextAttribute(hCon, BlackOnYellow);
@@ -654,6 +699,10 @@ void MovementTutorial()
 		do
 		{
 			in = _getch();
+			if (in != controls[Up] && in != controls[Left] && in != controls[Down] && in != controls[Right])
+			{
+				PrintOnMap("You can't do that now.");
+			}
 		} while (in != controls[Up] && in != controls[Left] && in != controls[Down] && in != controls[Right]);
 
 		ErasePrevCursor();
@@ -710,9 +759,16 @@ void GetTime()
 	}
 
 	SetConsoleTextAttribute(hCon, WhiteOnBlack);
-	curPos = TimePosition;
-	SetConsoleCursorPosition(hCon, curPos);
-	cout << "Time: " << (printTime[0] > 9 ? "" : "0") << printTime[0] << ":" << (printTime[1] > 9 ? "" : "0") << printTime[1];
+	SetConsoleCursorPosition(hCon, TimePosition);
+
+	if (shouldPrintTime)
+	{
+		cout << "Time: " << (printTime[0] > 9 ? "" : "0") << printTime[0] << ":" << (printTime[1] > 9 ? "" : "0") << printTime[1];
+	}
+	else
+	{
+		cout << "               ";
+	}
 	curPos = postBoardLoc;
 	SetConsoleCursorPosition(hCon, curPos);
 }
@@ -724,7 +780,6 @@ void DrawBoard()
 
 	curPos = { 0, 0 };
 	SetConsoleCursorPosition(hCon, curPos);
-	//system("cls");
 	cout << "  ";
 	SetConsoleTextAttribute(hCon, BlackOnRed);
 	cout << "MINESWEEPER	MATEO FABBRI" << endl;
@@ -798,8 +853,13 @@ void DrawBoard()
 
 	curPos = { (short)(7 + columns * 4), (short)(curPos.Y + 1) };
 	SetConsoleCursorPosition(hCon, curPos);
-	SetConsoleTextAttribute(hCon, WhiteOnBlack);
+	SetConsoleTextAttribute(hCon, OrangeOnBlack);
 	cout << controls[Restart] << ": Restart	";
+
+	curPos = { (short)(7 + columns * 4), (short)(curPos.Y + 1) };
+	SetConsoleCursorPosition(hCon, curPos);
+	SetConsoleTextAttribute(hCon, BlueOnBlack);
+	cout << controls[Time] << ": Show/hide time	";
 
 	GetTime();
 
@@ -1435,8 +1495,10 @@ void GameControls()
 			cout << "1: 'Clear flags' key:         " << controls[ClearFlags] << endl << endl;
 			SetConsoleTextAttribute(hCon, YellowOnBlack);
 			cout << "2: 'Options' key:             " << controls[Ops] << endl << endl;
-			SetConsoleTextAttribute(hCon, WhiteOnBlack);
+			SetConsoleTextAttribute(hCon, OrangeOnBlack);
 			cout << "3: 'Reset' key:             " << controls[Restart] << endl << endl;
+			SetConsoleTextAttribute(hCon, BlueOnBlack);
+			cout << "4: 'Time' key:             " << controls[Time] << endl << endl;
 			SetConsoleTextAttribute(hCon, WhiteOnBlack);
 			cout << "9: Page 1" << endl << endl;
 			SetConsoleTextAttribute(hCon, RedOnBlack);
@@ -1466,6 +1528,12 @@ void GameControls()
 				cout << "Current: " << controls[Restart] << endl
 					<< "Press new key for 'Restart'";
 				controls[Restart] = _getch();
+				break;
+
+			case '4':
+				cout << "Current: " << controls[Time] << endl
+					<< "Press new key for 'Show time'";
+				controls[Time] = _getch();
 				break;
 
 			case '9':
@@ -2067,8 +2135,8 @@ void ErasePrevCursor()
 // Print cell's data
 void DrawCellContent(int x, int y, bool erase)
 {
-	char flag = 213;
-	char bomb = 235;
+	char flag = 231;
+	char bomb = 208;
 
 	// Bomb case
 	if (board[y][x].mine && (board[y][x].opened || cheats))
@@ -2161,8 +2229,8 @@ void DrawCellContent(int x, int y, bool erase)
 // Print cell which the cursor stands on's data 
 void DrawCursorCases(int x, int y)
 {
-	char bomb = 235;
-	char flag = 213;
+	char bomb = 208;
+	char flag = 231;
 
 	// Cursor and counter case
 	if (board[y][x].mineCount > 0 && board[y][x].opened)
@@ -2450,5 +2518,14 @@ void GameStateControls(char key)
 		}
 
 		endGame = true;
+	}
+	else if (key == controls[Time])
+	{
+		if (soundOn)
+		{
+			Beep(3 * soundFreq, 100);
+		}
+		shouldPrintTime = !shouldPrintTime;
+		GetTime();
 	}
 }
