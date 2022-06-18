@@ -12,7 +12,7 @@ using namespace std;
 	Condiciones mínimas:
 		1. Las minas, las banderas, las celdas "inexploradas" y las
 			descubiertas (vacías o con números) poseen caracteres que las
-			diferencien entre ellas de forma fácil y efectiva .
+			diferencien entre ellas de forma fácil y efectiva.
 		2. Cada vez que se empieza una partida nueva, el tablero es
 			randomizado.
 		3. La cantidad mínima de minas es de 10.
@@ -469,9 +469,21 @@ void TutorialBoard()
 // Execute tutorial
 void RunTutorial()
 {
+	system("cls");
+	cout << R"(The board is a table of modifyable dimentions in each table
+position there is a square, and each of them has a chance to contain a
+mine. The objective of this game, is to find all mines, while not opening
+any of them. In order to do so, we have some tools that will be shown in
+this tutorial.
+
+)";
+	system("pause");
 	char ans;
 	mineQty = 2;
 	difficulty = Easy;
+	columns = preset[difficulty].columns;
+	lines = preset[difficulty].lines;
+	mineQty = preset[difficulty].mines;
 	TutorialBoard();
 
 	system("cls");
@@ -656,6 +668,7 @@ void RunGame()
 	boardCreated = false;
 	endGame = false;
 	usedCheats = false;
+	bool doOnce = true;
 
 	ResetBoard();
 
@@ -666,9 +679,14 @@ void RunGame()
 		endGame = CheckWinLose();
 		if (!endGame)
 		{
-			if (cheats)
+			if (cheats && boardCreated)
 			{
 				usedCheats = true;
+				if (doOnce)
+				{
+					doOnce = false;
+					DrawBoard();
+				}
 			}
 			InGameControls();
 			if (clock() % 1000 == 0)
@@ -905,8 +923,8 @@ void InGameControls()
 
 	char key = _getch();
 
-	if (key >= 65 && key <= 90)
-		key += 32;
+	if (isupper(key))
+		key = tolower(key);
 
 	MovementControls(key);
 	MainMechanicsControls(key);
@@ -1471,9 +1489,9 @@ void OptionsMenu()
 		Audio,
 		BoardKeys,
 		AutoFlag,
-		NegativeFlags,
 		Colors,
 		Records,
+		NegativeFlags,
 		Difficulty,
 	};
 
@@ -1510,19 +1528,20 @@ void OptionsMenu()
 		SetConsoleTextAttribute(hCon, (autoFlag ? GreenOnBlack : RedOnBlack));
 		cout << (autoFlag ? "ON" : "OFF") << endl;
 		SetConsoleTextAttribute(hCon, WhiteOnBlack);
-		cout << NegativeFlags << ": Unlimited flags			Default: ";
-		SetConsoleTextAttribute(hCon, GreenOnBlack);
-		cout << "ON	";
-		SetConsoleTextAttribute(hCon, WhiteOnBlack);
-		cout << "Current: ";
-		SetConsoleTextAttribute(hCon, (negFlags ? GreenOnBlack : RedOnBlack));
-		cout << (negFlags ? "ON" : "OFF") << endl;
-		SetConsoleTextAttribute(hCon, WhiteOnBlack);
 		cout << Colors << ": Change colors" << endl;
 		cout << Records << ": View best times" << endl;
 
 		if (endGame)
 		{
+			SetConsoleTextAttribute(hCon, WhiteOnBlack);
+			cout << NegativeFlags << ": Unlimited flags			Default: ";
+			SetConsoleTextAttribute(hCon, GreenOnBlack);
+			cout << "ON	";
+			SetConsoleTextAttribute(hCon, WhiteOnBlack);
+			cout << "Current: ";
+			SetConsoleTextAttribute(hCon, (negFlags ? GreenOnBlack : RedOnBlack));
+			cout << (negFlags ? "ON" : "OFF") << endl;
+			SetConsoleTextAttribute(hCon, WhiteOnBlack);
 			cout << Difficulty << ": Difficulty" << endl;
 		}
 
@@ -1607,7 +1626,10 @@ Frequency:                < )";
 			break;
 
 		case NegativeFlags:
-			negFlags = !negFlags;
+			if (endGame)
+			{
+				negFlags = !negFlags;
+			}
 			break;
 
 		case Records:
@@ -2045,18 +2067,21 @@ void ErasePrevCursor()
 // Print cell's data
 void DrawCellContent(int x, int y, bool erase)
 {
+	char flag = 213;
+	char bomb = 235;
+
 	// Bomb case
 	if (board[y][x].mine && (board[y][x].opened || cheats))
 	{
 		SetConsoleTextAttribute(hCon, BlackOnRed);
-		cout << " X ";
+		cout << " " << bomb << " ";
 		SetConsoleTextAttribute(hCon, WhiteOnBlack);
 	}
 	// Flag case
 	else if (board[y][x].flagged)
 	{
 		SetConsoleTextAttribute(hCon, BlackOnYellow);
-		cout << " ! ";
+		cout << " " << flag << " ";
 		SetConsoleTextAttribute(hCon, WhiteOnBlack);
 	}
 	// Empty case
@@ -2136,6 +2161,9 @@ void DrawCellContent(int x, int y, bool erase)
 // Print cell which the cursor stands on's data 
 void DrawCursorCases(int x, int y)
 {
+	char bomb = 235;
+	char flag = 213;
+
 	// Cursor and counter case
 	if (board[y][x].mineCount > 0 && board[y][x].opened)
 	{
@@ -2151,7 +2179,7 @@ void DrawCursorCases(int x, int y)
 		SetConsoleTextAttribute(hCon, BlackOnBlue);
 		cout << ">";
 		SetConsoleTextAttribute(hCon, BlackOnRed);
-		cout << "X";
+		cout << bomb;
 		SetConsoleTextAttribute(hCon, BlackOnBlue);
 		cout << "<";
 
@@ -2162,7 +2190,7 @@ void DrawCursorCases(int x, int y)
 		SetConsoleTextAttribute(hCon, BlackOnBlue);
 		cout << ">";
 		SetConsoleTextAttribute(hCon, BlackOnYellow);
-		cout << "!";
+		cout << flag;
 		SetConsoleTextAttribute(hCon, BlackOnBlue);
 		cout << "<";
 	}
