@@ -7,7 +7,6 @@ using namespace std;
 
 // ANALISIS_TM_TP6_FabbriMateo
 
-//GitKraken
 // CONDITIONS:
 /*
 	Condiciones mínimas:
@@ -289,7 +288,7 @@ void RunProgram()
 void Defaults()
 {
 	ShowWindow(GetConsoleWindow(), SW_MAXIMIZE);
-	SetConsoleTitle((L"Minesweeper - Fabbri Mateo"));
+	SetConsoleTitle(L"Minesweeper - Fabbri Mateo");
 	system("color 07");
 	srand(time(nullptr));
 	//setlocale(LC_ALL, "spanish");
@@ -777,7 +776,20 @@ void GetTime()
 // Print board
 void DrawBoard()
 {
-	char wall[11] = { 201, 205, 203, 187, 186, 204, 206, 185, 200, 202, 188 };					 // Cell Walls variables
+	char wall[]
+	{
+		static_cast<char>(201),
+		static_cast<char>(205),
+		static_cast<char>(203),
+		static_cast<char>(187),
+		static_cast<char>(186),
+		static_cast<char>(204),
+		static_cast<char>(206),
+		static_cast<char>(185),
+		static_cast<char>(200),
+		static_cast<char>(202),
+		static_cast<char>(188)
+	};					 // Cell Walls variables
 
 	curPos = { 0, 0 };
 	SetConsoleCursorPosition(hCon, curPos);
